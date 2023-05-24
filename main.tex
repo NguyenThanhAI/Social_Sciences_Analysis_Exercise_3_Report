@@ -205,11 +205,11 @@
     Ta sử dụng 5 mô hình đã được sử dụng trong bài tập trước:
 
     \begin{itemize}
-        \item Mô hình gồm tất cả các biến
-        \item Mô hình forward được chọn ở bài tập trước
-        \item Mô hình backward được chọn ở bài tập trước
-        \item Mô hình forward-backward được chọn ở bài tập trước
-        \item Mô hình các biến được trích xuất từ thuật toán PCA giữ lại 95 \% thông tin
+        \item Mô hình gồm tất cả các biến (ký hiệu là full)
+        \item Mô hình forward được chọn ở bài tập trước (ký hiệu là m.f)
+        \item Mô hình backward được chọn ở bài tập trước (ký hiệu là m.b)
+        \item Mô hình forward-backward được chọn ở bài tập trước (ký hiệu là m.bo)
+        \item Mô hình các biến được trích xuất từ thuật toán PCA giữ lại 95 \% thông tin (ký hiệu là pca\_x với x là thuật toán PCA giữ lại x \% thông tin)
     \end{itemize}
 
     Để chọn ra mô hình tốt nhất, mỗi mô hình đi kèm với cách chỉnh định sẽ được tối ưu hóa các siêu tham số gồm:
@@ -234,29 +234,160 @@
             \item AdaBelief
         \end{itemize}
 
-        Sơ đồ mã giả của các thuật toán tối ưu hóa được trình bày ở phụ lục \ref{Optimization-Algorithms}
+        Sơ đồ mã giả của các thuật toán tối ưu hóa được trình bày ở phụ lục \ref{Optimization-Algorithms} và chi tiết các phương pháp điều chỉnh tốc độ học được trình bày ở phục lục \ref{LRScheduler}
     \end{itemize}
 
     Các siêu tham số trên sẽ được huấn luyện sử dụng code python và numpy không sử dụng thư viện khác.
     Việc sử dụng code python và numpy để có thể thử với các thuật toán tối ưu hóa khác mà thư viện sklearn không có.
+    Hệ số $\lambda$ trong quá trình huấn luyện các mô hình được tự cài đặt bằng python và numpy được cố định là 1e-3 (do hạn chế về mặt thời gian).
+    Kết quả của quá trình tối ưu hóa siêu tham số cho các mô hình được cài đặt bằng python và numpy được trình bày ở bảng \ref{tab:custom-hyperparameter-result} với cột bên trái ngoài cùng là loại mô hình (được hình thành từ các biến giải thích sử dụng và phương pháp chỉnh định) các cột bên phải là tổ hợp các siêu tham số tối ưu tương ứng.
 
     Ngoài ra ta vẫn huấn luyện một tập các mô hình được huấn luyện sử dụng thư viện sklearn.
+    Vì vấn đề thời gian đối với các mô hình được huấn luyện trên sklearn chỉ gồm 3 mô hình:
+    \begin{itemize}
+        \item Mô hình gồm tất cả các biến
+        \item Mô hình forward-backward
+        \item Mô hình các biến được trích xuất từ thuật toán PCA giữ lại 95 \% thông tin
+    \end{itemize}
     Siêu tham số của các mô hình được huấn luyện sử dụng sklearn bao gồm:
 
     \begin{itemize}
         \item Phương pháp tiền xử lý: min-max scaling, standardize.
         \item Các hệ số $C$ là nghịch đảo của $\lambda$
-        \item Các thuật toán tối ưu hóa, 12 thuật toán tối ưu hóa được sử dụng gồm:
+        \item Các thuật toán tối ưu hóa, 6 thuật toán tối ưu hóa được sử dụng gồm:
+        \begin{itemize}
+            \item lbfgs
+            \item liblinear
+            \item newton-cg 
+            \item newton-cholesky
+            \item sag 
+            \item saga
+        \end{itemize}
     \end{itemize}
 
+    Phương pháp chỉnh định "l1" được gọi là Lasso, phương pháp chỉnh định "l2" được gọi là Ridge, không chỉnh định ta gọi là Naive
     Mỗi một cặp thông tin gồm phương pháp chỉnh định ("l1", "l2", không chỉnh định) và mô hình sẽ được chọn ra bộ siêu tham số tốt nhất từ các siêu tham số được đề cập ở trên bằng độ đo AUC-ROC trên tập test.
     Ta sẽ cố định tập test ngay từ đầu.
-    Như vậy ta sẽ có 5 (mô hình) $\times$ 3 ("l1"-lasso, "l2"-ridge, không chỉnh định) = 15 mô hình ứng viên được chọn từ quá trình tối ưu hóa siêu tham số.
+    Như vậy ta sẽ có 5 (mô hình) $\times$ 3 ("l1"-lasso, "l2"-ridge, không chỉnh định) = 15 mô hình ứng viên được cài đặt bằng ngôn ngữ python và numpy được chọn từ quá trình tối ưu hóa siêu tham số và 9 mô hình ứng viên được huấn luyện bằng thư viện sklearn.
+    Như vậy ta có 24 mô hình ứng viên.
 
-    Để chọn ra mô hình tốt nhất từ nhiều yếu tố như $AUC-ROC, AIC, BIC$ cũng như từ ma trận nhầm lẫn ứng với ngưỡng xác suất $p^*$ được chọn.
+    Từ các mô hình ứng viên, để chọn ra mô hình tốt nhất từ nhiều yếu tố như $AUC-ROC, AIC, BIC$ cũng như từ trung bình hình học G-Means giữa độ nhạy (Sensitivity) và độ đặc hiệu (Specificity) ứng với ngưỡng xác suất $p^*$ ($p^*$ làm cho G-Means cực đại) được chọn.
+
+    \begin{table}[h!]
+        \centering
+        \begin{tabular}{|c | c | c | c | c |}
+            \hline
+            Mô hình & Phương pháp chuẩn hóa & Thuật toán tối ưu & Scheduler & Init learning rate \\
+            \hline
+            \hline
+            full - Naive & standardize & RMSProp & inverse decay & 5 \\
+            \hline
+            m.bo - Naive & standardize & AdaBelief & fixed & 5 \\
+            \hline
+            m.f - Naive & standardize & RMSProp & squareroot &5 \\
+            \hline
+            m.b - Naive & standardize & RMSProp & cosine & 1 \\
+            \hline
+            pca\_95 - Naive & standardize & Gradient\_Descent & inverse\_decay & 10 \\
+            \hline
+            full - Lasso & minmax & Avagrad & squareroot & 10 \\
+            \hline
+            m.bo - Lasso & standardize & Adam & exponential\_decay & 10 \\
+            \hline
+            m.f - Lasso & standardize & RMSProp & fixed &2 \\
+            \hline
+            m.b - Lasso & standardize & AMSGrad & cyclic & 5 \\
+            \hline
+            pca\_95 - Lasso & standardize & Gradient\_Descent & cosine & 0.01 \\
+            \hline
+            full - Ridge & standardize & RAdam & fixed & 10 \\
+            \hline
+            m.bo - Ridge & standardize & Adam & fixed & 5 \\
+            \hline
+            m.f - Ridge & standardize & RAdam & fixed & 10 \\
+            \hline
+            m.b - Ridge & standardize & RAdam & fixed & 10 \\
+            \hline
+            pca\_95 - Ridge & standardize & RAdam & fixed & 10 \\
+            \hline
+        \end{tabular}
+        \caption{Các siêu tham số tốt nhất với từng mô hình (mỗi mô hình được xác định bằng các biến \\ giải thích và phương pháp chỉnh định (naive, ridge, lasso))}
+        \label{tab:custom-hyperparameter-result}
+    \end{table}
 
 
+    \begin{table}[h!]
+        \centering
+        \begin{tabular}{|c | c | c | c | c |}
+            \hline
+            Mô hình & Random\_state & Phương pháp chuẩn hóa & Thuật toán tối ưu & C \\
+            \hline
+            \hline
+            Sklearn full - Naive & 379 & minmax & sag & 0.0001 \\
+            \hline
+            Sklearn m.bo - Naive & 953 & standardize & sag & 0.0001 \\
+            \hline
+            Sklearn pca\_95 - Naive & 431 & minmax & sag & 0.0001 \\
+            \hline
+            Sklearn full - Lasso & 587 & standardize & saga & 1000 \\
+            \hline
+            Sklearn m.bo - Lasso & 0 & standardize & liblinear & 10 \\
+            \hline
+            Sklearn pca\_95 - Lasso & 2 & minmax & saga & 0.1 \\
+            \hline
+            Sklearn full - Ridge & 0 & minmax & lbfgs & 10 \\
+            \hline
+            Sklearn m.bo - Ridge & 85 & standardize & sag & 100 \\
+            \hline
+            Sklearn pca\_95 - Ridge & 0 & minmax & lbfgs & 10 \\
+            \hline
+        \end{tabular}
+        \caption{Các siêu tham số tốt nhất với từng mô hình được huấn luyện sử dụng thư viện sklearn (mỗi mô hình được xác định bằng các biến giải thích và phương pháp chỉnh định (naive, ridge, lasso))}
+        \label{tab:sklearn-hyperparameter-result}
+    \end{table}
 
+    Random\_state được chính là seed để khởi tạo các tham số của mô hình.
+    Còn tập dữ liệu được chia tập train và tập test một cách cố định từ ban đầu (sử dụng random\_state 42)
+
+    Kết quả của quá trình tối ưu hóa siêu tham số cho các mô hình được cài đặt bằng python và numpy được trình bày ở bảng \ref{tab:sklearn-hyperparameter-result}
+
+
+    Để chọn ra ngưỡng xác suất $p^*$ tốt nhất với từng mô hình ta tìm ngưỡng xác suất sao cho cực đại hóa trung bình hình học giữa độ nhạy (Sensitivity) và độ đặc hiệu (Specificity).
+    Ta có công thức tính các đại lượng trên:
+
+    \begin{equation*}
+        \begin{aligned}
+            \mathrm{TPR} = \mathrm{Precision} = \mathrm{Sensitivity} &= \dfrac{\mathrm{TP}}{\mathrm{TP} + \mathrm{FN}} \\
+            \mathrm{FPR} &= \dfrac{\mathrm{FP}}{\mathrm{FP} + \mathrm{TN}} \\
+            \mathrm{Specificity} = 1 - \mathrm{FPR} &= \dfrac{\mathrm{TN}}{\mathrm{FP} + \mathrm{TN}}
+        \end{aligned}
+    \end{equation*}
+
+    Trung bình hình học giữa giữa độ nhạy (Sensitivity) và độ đặc hiệu (Specificity) là:
+    \begin{equation*}
+        \mathrm{G-Means} = \sqrt{\mathrm{Sensitivity} \times \mathrm{Specificity}} = \sqrt{\dfrac{\mathrm{TP}}{\mathrm{TP} + \mathrm{FN}} \times \dfrac{\mathrm{TN}}{\mathrm{FP} + \mathrm{TN}}}
+    \end{equation*}
+
+    Như ta đã biết đường cong ROC được xây dựng bằng cách chọn các ngưỡng xác suất $p$ để một mẫu được phân loại thành nhãn 1 hay nhãn 0 (mẫu được xem là nhãn 1 nếukết quả đầu ra lớn hơn 1 và ngược lại được xem là nhãn 0).
+    Như vậy với mỗi ngưỡng xác suất sẽ có một bảng ma trận nhầm lẫn khác nhau (TP, TN, FP, FN thay đổi dựa theo ngưỡng xác suất) hay sẽ có các giá trị độ nhạy (Sensitivity) và độ đặc hiệu (Specificity) khác nhau từ đó dẫn đến trung bình hình học G-Means giữa hai đại lượng này cũng thay đổi.
+    Ta chọn $p^*$ sao cho làm cực đại hóa giá trị G-Means:
+
+    \begin{equation*}
+        p^* = \underset{p}{\mathrm{argmax}} \mathrm{G-Means} = \underset{p}{\mathrm{argmax}} \sqrt{\mathrm{Sensitivity} \times \mathrm{Specificity}} = \underset{p}{\mathrm{argmax}} \sqrt{\dfrac{\mathrm{TP}}{\mathrm{TP} + \mathrm{FN}} \times \dfrac{\mathrm{TN}}{\mathrm{FP} + \mathrm{TN}}}
+    \end{equation*}
+
+    Để tính giá trị $p^*$ ta sử dụng đoạn code sau:
+
+    \begin{python}
+y_pred = model.predict(x=test_x, return_prob=True)
+fpr, tpr, thresholds = roc_curve(y_true=test_y, y_score=y_pred)
+area_roc = auc(fpr, tpr)
+gmeans = compute_gmeans(tpr=tpr, fpr=fpr)
+        
+idx = np.argmax(gmeans)
+prob_star = thresholds[idx]
+gmean_star = gmeans[idx]
+    \end{python}
 \end{loigiai}
 
 \newpage
@@ -501,7 +632,7 @@
     \caption{Thuật toán Avagrad}
 \end{algorithm}
 
-\section{Các phương pháp điều chỉnh tốc độ học}
+\section{Các phương pháp điều chỉnh tốc độ học} \label{LRScheduler}
 
 
 \begin{algorithm}[h!]
