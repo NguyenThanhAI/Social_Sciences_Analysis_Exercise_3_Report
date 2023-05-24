@@ -203,7 +203,60 @@
     \end{equation*}
 
     Ta sử dụng 5 mô hình đã được sử dụng trong bài tập trước:
-    
+
+    \begin{itemize}
+        \item Mô hình gồm tất cả các biến
+        \item Mô hình forward được chọn ở bài tập trước
+        \item Mô hình backward được chọn ở bài tập trước
+        \item Mô hình forward-backward được chọn ở bài tập trước
+        \item Mô hình các biến được trích xuất từ thuật toán PCA giữ lại 95 \% thông tin
+    \end{itemize}
+
+    Để chọn ra mô hình tốt nhất, mỗi mô hình đi kèm với cách chỉnh định sẽ được tối ưu hóa các siêu tham số gồm:
+
+    \begin{itemize}
+        \item Phương pháp tiền xử lý: min-max scaling, standardize.
+        \item Tốc độ học được biến đổi trong quá trình huấn luyện theo các cách: fixed, cyclic, inverse\_decay, exponential\_decay, factor\_decay, squareroot, cosine.
+        \item Các tốc độ học khác nhau: 1e-4, 1e-3, 1e-2, 1e-1, 1, 2, 5, 10
+        \item Các thuật toán tối ưu hóa, 12 thuật toán tối ưu hóa được sử dụng gồm:
+        \begin{itemize}
+            \item Gradient Descent
+            \item Adam
+            \item Avagrad
+            \item RAdam
+            \item Momentum
+            \item Adagrad
+            \item RMSProp
+            \item Adadelta
+            \item Adamax
+            \item Nadam
+            \item AMSGrad
+            \item AdaBelief
+        \end{itemize}
+
+        Sơ đồ mã giả của các thuật toán tối ưu hóa được trình bày ở phụ lục \ref{Optimization-Algorithms}
+    \end{itemize}
+
+    Các siêu tham số trên sẽ được huấn luyện sử dụng code python và numpy không sử dụng thư viện khác.
+    Việc sử dụng code python và numpy để có thể thử với các thuật toán tối ưu hóa khác mà thư viện sklearn không có.
+
+    Ngoài ra ta vẫn huấn luyện một tập các mô hình được huấn luyện sử dụng thư viện sklearn.
+    Siêu tham số của các mô hình được huấn luyện sử dụng sklearn bao gồm:
+
+    \begin{itemize}
+        \item Phương pháp tiền xử lý: min-max scaling, standardize.
+        \item Các hệ số $C$ là nghịch đảo của $\lambda$
+        \item Các thuật toán tối ưu hóa, 12 thuật toán tối ưu hóa được sử dụng gồm:
+    \end{itemize}
+
+    Mỗi một cặp thông tin gồm phương pháp chỉnh định ("l1", "l2", không chỉnh định) và mô hình sẽ được chọn ra bộ siêu tham số tốt nhất từ các siêu tham số được đề cập ở trên bằng độ đo AUC-ROC trên tập test.
+    Ta sẽ cố định tập test ngay từ đầu.
+    Như vậy ta sẽ có 5 (mô hình) $\times$ 3 ("l1"-lasso, "l2"-ridge, không chỉnh định) = 15 mô hình ứng viên được chọn từ quá trình tối ưu hóa siêu tham số.
+
+    Để chọn ra mô hình tốt nhất từ nhiều yếu tố như $AUC-ROC, AIC, BIC$ cũng như từ ma trận nhầm lẫn ứng với ngưỡng xác suất $p^*$ được chọn.
+
+
+
 \end{loigiai}
 
 \newpage
@@ -212,7 +265,7 @@
 \newpage
 \appendix
 
-\section{Các thuật toán tối ưu hóa}
+\section{Các thuật toán tối ưu hóa} \label{Optimization-Algorithms}
 
 
 \begin{algorithm}[h!]
@@ -447,5 +500,106 @@
     \Return{$w_T$}\;
     \caption{Thuật toán Avagrad}
 \end{algorithm}
+
+\section{Các phương pháp điều chỉnh tốc độ học}
+
+
+\begin{algorithm}[h!]
+    \DontPrintSemicolon
+    \KwIn{Tốc độ học ban đầu $\alpha$}
+    \For{$t \gets 0$ \KwSty{to} $T$} {
+        $t \gets t + 1$\;
+        $\alpha_t \gets \alpha$\;
+    }
+    \caption{Điều chỉnh tốc độ học theo phương pháp cố định}
+\end{algorithm}
+
+
+\begin{algorithm}[h!]
+    \DontPrintSemicolon
+    \KwIn{Tốc độ học ban đầu $\alpha$}
+    \For{$t \gets 0$ \KwSty{to} $T$} {
+        $t \gets t + 1$\;
+        $\alpha_t \gets \dfrac{\alpha}{t}$\;
+    }
+    \caption{Điều chỉnh tốc độ học theo phương pháp inverse decay}
+\end{algorithm}
+
+
+\begin{algorithm}[h!]
+    \DontPrintSemicolon
+    \KwIn{min\_lr, max\_lr, num\_increase, num\_decrease}
+    \For{$t \gets 0$ \KwSty{to} $T$} {
+        $t \gets t + 1$\;
+        res\_step $\gets$ num\_steps mod (num\_increase + num\_decrease)\;
+        \If{res\_step < num\_increase} {
+            $\alpha_t \gets$  min\_lr + (max\_lr - min\_lr) $\times$ res\_step / num\_increase\;
+        } \Else {
+            $\alpha_t \gets$ max\_lr - (max\_lr - min\_lr) $\times$ (res\_step - num\_increase) / (num\_decrease)\;
+        }
+    }
+    \caption{Điều chỉnh tốc độ học theo phương pháp cyclic}
+\end{algorithm}
+
+
+\begin{algorithm}[h!]
+    \DontPrintSemicolon
+    \KwIn{min\_lr, max\_lr, max\_steps}
+    \For{$t \gets 0$ \KwSty{to} $T$} {
+        $t \gets t + 1$\;
+        \If{$t \geq$ max\_steps} {
+            $\alpha_t \gets$ min\_lr\;
+        } \Else {
+            $\alpha_t \gets$ max\_lr - num\_steps $\times$ (init\_lr - min\_lr) / max\_steps\;
+        }
+    }
+    \caption{Điều chỉnh tốc độ học theo phương pháp giảm tuyến tính}
+\end{algorithm}
+
+\begin{algorithm}[h!]
+    \DontPrintSemicolon
+    \KwIn{Tốc độ học ban đầu $\alpha$, tốc độ giảm $k$}
+    \For{$t \gets 0$ \KwSty{to} $T$} {
+        $t \gets t + 1$\;
+        $\alpha_t \gets \alpha \exp(-k \times t)$\;
+    }
+    \caption{Điều chỉnh tốc độ học theo phương pháp giảm theo hàm mũ}
+\end{algorithm}
+
+\begin{algorithm}[h!]
+    \DontPrintSemicolon
+    \KwIn{Tốc độ học ban đầu $\alpha$, hệ số giảm $k < 1$, chu kỳ giảm $T$}
+    \For{$t \gets 0$ \KwSty{to} $T$} {
+        $t \gets t + 1$\;
+        \If {$t \% T = 0$} {
+            $\alpha_t \gets \alpha \times k$\;
+        } \Else {
+            $\alpha_t \gets \alpha_{t-1}$\;
+        }
+    }
+    \caption{Điều chỉnh tốc độ học theo phương pháp giảm theo hàm mũ}
+\end{algorithm}
+
+\begin{algorithm}[h!]
+    \DontPrintSemicolon
+    \KwIn{Tốc độ học ban đầu $\alpha$}
+    \For{$t \gets 0$ \KwSty{to} $T$} {
+        $t \gets t + 1$\;
+        $\alpha_t \gets \dfrac{\alpha}{\sqrt{t}}$\;
+    }
+    \caption{Điều chỉnh tốc độ học theo phương pháp giảm theo hàm căn}
+\end{algorithm}
+
+
+\begin{algorithm}[h!]
+    \DontPrintSemicolon
+    \KwIn{min\_lr, max\_lr, max\_steps}
+    \For{$t \gets 0$ \KwSty{to} $T$} {
+        $t \gets t + 1$\;
+        $\alpha_t \gets$ min\_lr + $\dfrac{1}{2}$ (max\_lr - min\_lr) (1 + $\cos$((num\_steps $\times \pi$)/max\_steps))\;
+    }
+    \caption{Điều chỉnh tốc độ học theo phương pháp cosine}
+\end{algorithm}
+
 
 \end{document}
