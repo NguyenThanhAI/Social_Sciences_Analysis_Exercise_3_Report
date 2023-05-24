@@ -809,6 +809,13 @@ gmean_star = gmeans[idx]
         \label{fig:prob_box_plot}
     \end{figure}
 
+    Ở bài tập 2, mỗi mô hình trên được tối ưu hóa siêu tham số theo hai cách:
+
+    \begin{itemize}
+        \item Chỉ tối ưu trên random\_state của mô hình logistic (cách khởi tạo mô hình).
+        \item Tối ưu trên các siêu tham số random\_state, C, solver, regularization (l1, l2, elasticnet).
+    \end{itemize}
+
     \begin{figure}[h!]
         \centering
         \includegraphics[width=1.0\textwidth]{figures/ROC_Curve_AIC_BIC_Excercise_2_1.png}
