@@ -202,7 +202,413 @@
         \mathcal{L}_{\mathrm{Ridge}} = -\dfrac{1}{N}\sum_{i=1}^N (y_i \log \hat{y}_i + (1-y_i)\log(1-\hat{y}_i)) + \lambda \lVert \bold{w} \rVert_1
     \end{equation*}
 
-    Ta sử dụng 5 mô hình đã được sử dụng trong bài tập trước:
+    Để xây dựng mô hình, ta sẽ sử dụng các hướng sau:
+
+        \begin{itemize}
+            \item Mô hình bao gồm tất cả các biến (đặc trưng) từ tập dữ liệu.
+            \item Mô hình bao gồm các đặc trưng được trích xuất từ thuật toán PCA giữa lại 95 \% thông tin.
+            \item Mô hình gồm các biến được chọn từ hàm step() để lựa chọn mô hình trong ngôn ngữ R.
+        \end{itemize}
+
+    Dữ liệu trước khi đưa vào hàm step() trong R được tiền xử lý theo hai cách:
+
+    \begin{itemize}
+        \item Min max scaling (minmax)
+        \item Standardize
+    \end{itemize}
+
+    Ta kiểm định các hệ số của mô hình forward sử dụng likelihood ratio test:
+
+\begin{verbatim}
+    anova(minmax_m.f, test="Chisq")
+\end{verbatim}
+
+    \begin{verbatim}
+Df	Deviance	Resid. Df	Resid. Dev	Pr(>Chi)
+<int>	<dbl>	<int>	<dbl>	<dbl>
+NULL	NA	NA	207	287.40621	NA
+V11	1	45.813415	206	241.59279	1.300698e-11
+V47	1	19.278348	205	222.31444	1.129803e-05
+V36	1	14.276700	204	208.03774	1.578062e-04
+V45	1	11.188262	203	196.84948	8.231642e-04
+V4	1	7.877562	202	188.97192	5.005192e-03
+V15	1	7.147110	201	181.82481	7.508488e-03
+V21	1	10.009874	200	171.81494	1.557032e-03
+V51	1	5.049499	199	166.76544	2.463306e-02
+V8	1	6.307759	198	160.45768	1.202107e-02
+V49	1	4.305721	197	156.15196	3.798439e-02
+V50	1	3.675029	196	152.47693	5.523328e-02
+V1	1	4.399958	195	148.07697	3.593981e-02
+V3	1	3.994465	194	144.08250	4.564995e-02
+V52	1	4.131899	193	139.95061	4.208211e-02
+V54	1	5.142063	192	134.80854	2.335288e-02
+V23	1	5.266855	191	129.54169	2.173524e-02
+V29	1	3.784617	190	125.75707	5.172573e-02
+V31	1	5.069299	189	120.68777	2.435323e-02
+V12	1	5.208250	188	115.47952	2.247995e-02
+V30	1	3.796447	187	111.68307	5.136148e-02
+V32	1	6.695459	186	104.98762	9.665880e-03
+V53	1	3.503780	185	101.48384	6.122894e-02
+V7	1	3.585955	184	97.89788	5.826991e-02
+V16	1	4.186234	183	93.71165	4.075352e-02
+V9	1	3.377209	182	90.33444	6.610391e-02
+V26	1	3.287893	181	87.04654	6.979253e-02
+V37	1	3.799709	180	83.24684	5.126148e-02
+V34	1	2.558428	179	80.68841	1.097077e-01
+V35	1	3.043974	178	77.64443	8.103731e-02
+V38	1	2.682565	177	74.96187	1.014522e-01
+V6	1	2.916942	176	72.04493	8.765385e-02
+V40	1	2.279184	175	69.76574	1.311208e-01
+V59	1	2.302910	174	67.46283	1.291319e-01
+V19	1	2.118068	173	65.34476	1.455701e-01
+V56	1	2.415767	172	62.92900	1.201192e-01
+    \end{verbatim}
+
+    \begin{verbatim}
+anova(standardize_m.f, test="Chisq")
+    \end{verbatim}
+
+    \begin{verbatim}
+Df	Deviance	Resid. Df	Resid. Dev	Pr(>Chi)
+<int>	<dbl>	<int>	<dbl>	<dbl>
+NULL	NA	NA	207	287.40621	NA
+V11	1	45.813415	206	241.59279	1.300698e-11
+V47	1	19.278348	205	222.31444	1.129803e-05
+V36	1	14.276700	204	208.03774	1.578062e-04
+V45	1	11.188262	203	196.84948	8.231642e-04
+V4	1	7.877562	202	188.97192	5.005192e-03
+V15	1	7.147110	201	181.82481	7.508488e-03
+V21	1	10.009874	200	171.81494	1.557032e-03
+V51	1	5.049499	199	166.76544	2.463306e-02
+V8	1	6.307759	198	160.45768	1.202107e-02
+V49	1	4.305721	197	156.15196	3.798439e-02
+V50	1	3.675029	196	152.47693	5.523328e-02
+V1	1	4.399958	195	148.07697	3.593981e-02
+V3	1	3.994465	194	144.08250	4.564995e-02
+V52	1	4.131899	193	139.95061	4.208211e-02
+V54	1	5.142063	192	134.80854	2.335288e-02
+V23	1	5.266855	191	129.54169	2.173524e-02
+V29	1	3.784617	190	125.75707	5.172573e-02
+V31	1	5.069299	189	120.68777	2.435323e-02
+V12	1	5.208250	188	115.47952	2.247995e-02
+V30	1	3.796447	187	111.68307	5.136148e-02
+V32	1	6.695459	186	104.98762	9.665880e-03
+V53	1	3.503780	185	101.48384	6.122894e-02
+V7	1	3.585955	184	97.89788	5.826991e-02
+V16	1	4.186234	183	93.71165	4.075352e-02
+V9	1	3.377209	182	90.33444	6.610391e-02
+V26	1	3.287893	181	87.04654	6.979253e-02
+V37	1	3.799709	180	83.24684	5.126148e-02
+V34	1	2.558428	179	80.68841	1.097077e-01
+V35	1	3.043974	178	77.64443	8.103731e-02
+V38	1	2.682565	177	74.96187	1.014522e-01
+V6	1	2.916942	176	72.04493	8.765385e-02
+V40	1	2.279184	175	69.76574	1.311208e-01
+V59	1	2.302910	174	67.46283	1.291319e-01
+V19	1	2.118068	173	65.34476	1.455701e-01
+V56	1	2.415767	172	62.92900	1.201192e-01
+    \end{verbatim}
+
+    \begin{figure}[h!]
+        \centering
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/minmax_mf_quantile_resid.png}
+            \caption{Quantile residual của mô hình forward (dữ liệu được tiền xử lý minmax)}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/standardize_mf_quantile_resid.png}
+            \caption{Quantile residual của mô hình forward (dữ liệu được tiền xử lý standardize)}
+        \end{subfigure}
+        \label{fig:Quantile-resid-mf}
+    \end{figure}
+
+    \begin{figure}[h!]
+        \centering
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/minmax_mf_cooks.png}
+            \caption{Cooks distance của mô hình forward (dữ liệu được tiền xử lý minmax)}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/standardize_mf_cooks.png}
+            \caption{Cooks distance của mô hình forward (dữ liệu được tiền xử lý standardize)}
+        \end{subfigure}
+        \label{fig:Cooks-distance-mf}
+    \end{figure}
+
+
+    \begin{figure}[h!]
+        \centering
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/minmax_mf_fitted.png}
+            \caption{Quantile residual theo fitted value của mô hình forward (dữ liệu được tiền xử lý minmax)}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/standardize_mf_fitted.png}
+            \caption{Quantile residual theo fitted value của mô hình forward (dữ liệu được tiền xử lý standardize)}
+        \end{subfigure}
+        \label{fig:Quantile-fitted-mf}
+    \end{figure}
+
+    Ta kiểm định các hệ số của mô hình forward sử dụng likelihood ratio test:
+
+    \begin{verbatim}
+anova(minmax_m.b, test="Chisq")
+    \end{verbatim}
+
+    \begin{verbatim}
+Df	Deviance	Resid. Df	Resid. Dev	Pr(>Chi)
+<int>	<dbl>	<int>	<dbl>	<dbl>
+NULL	NA	NA	207	2.874062e+02	NA
+V1	1	17.713882964	206	2.696923e+02	2.567460e-05
+V3	1	0.605538874	205	2.690868e+02	4.364725e-01
+V7	1	0.401073639	204	2.686857e+02	5.265353e-01
+V9	1	16.415841846	203	2.522699e+02	5.085840e-05
+V12	1	18.464018055	202	2.338059e+02	1.731425e-05
+V13	1	0.040230414	201	2.337656e+02	8.410307e-01
+V14	1	1.482925834	200	2.322827e+02	2.233173e-01
+V16	1	2.775377941	199	2.295073e+02	9.572406e-02
+V17	1	0.040139972	198	2.294672e+02	8.412072e-01
+V18	1	2.554980373	197	2.269122e+02	1.099472e-01
+V19	1	9.888496760	196	2.170237e+02	1.663152e-03
+V20	1	0.100063203	195	2.169236e+02	7.517538e-01
+V21	1	8.718785951	194	2.082049e+02	3.149477e-03
+V22	1	4.578958193	193	2.036259e+02	3.236689e-02
+V23	1	0.688625865	192	2.029373e+02	4.066322e-01
+V24	1	0.007890769	191	2.029294e+02	9.292170e-01
+V25	1	0.173935050	190	2.027554e+02	6.766380e-01
+V27	1	1.067674920	189	2.016878e+02	3.014712e-01
+V29	1	1.307537307	188	2.003802e+02	2.528410e-01
+V30	1	0.037764676	187	2.003425e+02	8.459164e-01
+V31	1	7.187290937	186	1.931552e+02	7.342175e-03
+V32	1	4.891994149	185	1.882632e+02	2.698150e-02
+V33	1	6.664572192	184	1.815986e+02	9.834826e-03
+V34	1	2.380619623	183	1.792180e+02	1.228488e-01
+V37	1	5.647405508	182	1.735706e+02	1.748122e-02
+V39	1	3.342750615	181	1.702278e+02	6.750168e-02
+V40	1	0.003614541	180	1.702242e+02	9.520592e-01
+V41	1	8.616473888	179	1.616077e+02	3.331361e-03
+V42	1	4.215551288	178	1.573922e+02	4.005505e-02
+V43	1	2.942413740	177	1.544498e+02	8.628171e-02
+V46	1	12.732911806	176	1.417169e+02	3.592767e-04
+V48	1	18.532618731	175	1.231842e+02	1.670213e-05
+V50	1	11.198645365	174	1.119856e+02	8.185707e-04
+V51	1	13.815457905	173	9.817014e+01	2.016702e-04
+V52	1	24.175881404	172	7.399426e+01	8.792654e-07
+V57	1	0.196456219	171	7.379781e+01	6.575966e-01
+V58	1	73.797803271	170	2.848136e-06	8.654286e-18
+    \end{verbatim}
+
+    \begin{verbatim}
+anova(standardize_m.b, test="Chisq")
+    \end{verbatim}
+
+    \begin{verbatim}
+Df	Deviance	Resid. Df	Resid. Dev	Pr(>Chi)
+<int>	<dbl>	<int>	<dbl>	<dbl>
+NULL	NA	NA	207	2.874062e+02	NA
+V1	1	17.713882964	206	2.696923e+02	2.567460e-05
+V3	1	0.605538874	205	2.690868e+02	4.364725e-01
+V7	1	0.401073639	204	2.686857e+02	5.265353e-01
+V9	1	16.415841846	203	2.522699e+02	5.085840e-05
+V12	1	18.464018055	202	2.338059e+02	1.731425e-05
+V13	1	0.040230414	201	2.337656e+02	8.410307e-01
+V14	1	1.482925834	200	2.322827e+02	2.233173e-01
+V16	1	2.775377941	199	2.295073e+02	9.572406e-02
+V17	1	0.040139972	198	2.294672e+02	8.412072e-01
+V18	1	2.554980373	197	2.269122e+02	1.099472e-01
+V19	1	9.888496760	196	2.170237e+02	1.663152e-03
+V20	1	0.100063203	195	2.169236e+02	7.517538e-01
+V21	1	8.718785951	194	2.082049e+02	3.149477e-03
+V22	1	4.578958193	193	2.036259e+02	3.236689e-02
+V23	1	0.688625865	192	2.029373e+02	4.066322e-01
+V24	1	0.007890769	191	2.029294e+02	9.292170e-01
+V25	1	0.173935050	190	2.027554e+02	6.766380e-01
+V27	1	1.067674920	189	2.016878e+02	3.014712e-01
+V29	1	1.307537307	188	2.003802e+02	2.528410e-01
+V30	1	0.037764676	187	2.003425e+02	8.459164e-01
+V31	1	7.187290937	186	1.931552e+02	7.342175e-03
+V32	1	4.891994149	185	1.882632e+02	2.698150e-02
+V33	1	6.664572192	184	1.815986e+02	9.834826e-03
+V34	1	2.380619623	183	1.792180e+02	1.228488e-01
+V37	1	5.647405508	182	1.735706e+02	1.748122e-02
+V39	1	3.342750615	181	1.702278e+02	6.750168e-02
+V40	1	0.003614541	180	1.702242e+02	9.520592e-01
+V41	1	8.616473888	179	1.616077e+02	3.331361e-03
+V42	1	4.215551288	178	1.573922e+02	4.005505e-02
+V43	1	2.942413740	177	1.544498e+02	8.628171e-02
+V46	1	12.732911806	176	1.417169e+02	3.592767e-04
+V48	1	18.532618731	175	1.231842e+02	1.670213e-05
+V50	1	11.198645365	174	1.119856e+02	8.185707e-04
+V51	1	13.815457905	173	9.817014e+01	2.016702e-04
+V52	1	24.175881404	172	7.399426e+01	8.792654e-07
+V57	1	0.196456219	171	7.379781e+01	6.575966e-01
+V58	1	73.797803271	170	2.848136e-06	8.654286e-18
+        
+    \end{verbatim}
+
+    \begin{figure}[h!]
+        \centering
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/minmax_mb_quantile_resid.png}
+            \caption{Quantile residual của mô hình backward (dữ liệu được tiền xử lý minmax)}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/standardize_mb_quantile_resid.png}
+            \caption{Quantile residual của mô hình backward (dữ liệu được tiền xử lý standardize)}
+        \end{subfigure}
+        \label{fig:Quantile-resid-mb}
+    \end{figure}
+
+
+    \begin{figure}[h!]
+        \centering
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/minmax_mb_cooks.png}
+            \caption{Cooks distance của mô hình backward (dữ liệu được tiền xử lý minmax)}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/standardize_mb_cooks.png}
+            \caption{Cooks distance của mô hình backward (dữ liệu được tiền xử lý standardize)}
+        \end{subfigure}
+        \label{fig:Cooks-distance-mb}
+    \end{figure}
+
+    \begin{figure}[h!]
+        \centering
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/minmax_mb_fitted.png}
+            \caption{Quantile residual theo fitted value của mô hình backward (dữ liệu được tiền xử lý minmax)}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/standardize_mb_fitted.png}
+            \caption{Quantile residual theo fitted value của mô hình backward (dữ liệu được tiền xử lý standardize)}
+        \end{subfigure}
+        \label{fig:Quantile-fitted-mb}
+    \end{figure}
+
+    Ta kiểm định các hệ số của mô hình forward sử dụng likelihood ratio test:
+
+    \begin{verbatim}
+anova(minmax_m.bo, test="Chisq")
+    \end{verbatim}
+    
+    \begin{verbatim}
+Df	Deviance	Resid. Df	Resid. Dev	Pr(>Chi)
+<int>	<dbl>	<int>	<dbl>	<dbl>
+NULL	NA	NA	207	287.4062	NA
+V2	1	12.3993380	206	275.0069	4.294861e-04
+V4	1	7.2353306	205	267.7715	7.148265e-03
+V10	1	17.6355013	204	250.1360	2.675471e-05
+V11	1	14.7399471	203	235.3961	1.234037e-04
+V17	1	7.1135689	202	228.2825	7.650265e-03
+V20	1	7.9403408	201	220.3422	4.834473e-03
+V21	1	2.6332555	200	217.7089	1.046469e-01
+V22	1	3.4019489	199	214.3070	6.511944e-02
+V29	1	4.6766949	198	209.6303	3.057452e-02
+V30	1	0.1571336	197	209.4731	6.918094e-01
+V31	1	2.8813646	196	206.5918	8.961005e-02
+V32	1	5.0170651	195	201.5747	2.509867e-02
+V34	1	11.6135724	194	189.9611	6.547227e-04
+V35	1	1.1156477	193	188.8455	2.908575e-01
+V36	1	10.0702347	192	178.7753	1.506838e-03
+V49	1	27.9711885	191	150.8041	1.231352e-07
+V50	1	5.2407937	190	145.5633	2.206321e-02        
+    \end{verbatim}
+
+    \begin{verbatim}
+anova(standardize_m.bo, test="Chisq")
+    \end{verbatim}
+
+    \begin{verbatim}
+Df	Deviance	Resid. Df	Resid. Dev	Pr(>Chi)
+<int>	<dbl>	<int>	<dbl>	<dbl>
+NULL	NA	NA	207	287.4062	NA
+V2	1	12.3993380	206	275.0069	4.294861e-04
+V4	1	7.2353306	205	267.7715	7.148265e-03
+V10	1	17.6355013	204	250.1360	2.675471e-05
+V11	1	14.7399471	203	235.3961	1.234037e-04
+V17	1	7.1135689	202	228.2825	7.650265e-03
+V20	1	7.9403408	201	220.3422	4.834473e-03
+V21	1	2.6332555	200	217.7089	1.046469e-01
+V22	1	3.4019489	199	214.3070	6.511944e-02
+V29	1	4.6766949	198	209.6303	3.057452e-02
+V30	1	0.1571336	197	209.4731	6.918094e-01
+V31	1	2.8813646	196	206.5918	8.961005e-02
+V32	1	5.0170651	195	201.5747	2.509867e-02
+V34	1	11.6135724	194	189.9611	6.547227e-04
+V35	1	1.1156477	193	188.8455	2.908575e-01
+V36	1	10.0702347	192	178.7753	1.506838e-03
+V49	1	27.9711885	191	150.8041	1.231352e-07
+V50	1	5.2407937	190	145.5633	2.206321e-02
+    \end{verbatim}
+
+    \begin{figure}[h!]
+        \centering
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/minmax_mbo_quantile_resid.png}
+            \caption{Quantile residual của mô hình forward-backward (dữ liệu được tiền xử lý minmax)}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/standardize_mbo_quantile_resid.png}
+            \caption{Quantile residual của mô hình forward-backward (dữ liệu được tiền xử lý standardize)}
+        \end{subfigure}
+        \label{fig:Quantile-resid-mbo}
+    \end{figure}
+
+    \begin{figure}[h!]
+        \centering
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/minmax_mbo_cooks.png}
+            \caption{Cooks distance của mô hình forward-backward (dữ liệu được tiền xử lý minmax)}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/standardize_mbo_cooks.png}
+            \caption{Cooks distance của mô hình forward-backward (dữ liệu được tiền xử lý standardize)}
+        \end{subfigure}
+        \label{fig:Cooks-distance-mbo}
+    \end{figure}
+
+    \begin{figure}[h!]
+        \centering
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/minmax_mbo_fitted.png}
+            \caption{Quantile residual theo fitted value của mô hình forward-backward (dữ liệu được tiền xử lý minmax)}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/standardize_mbo_fitted.png}
+            \caption{Quantile residual theo fitted value của mô hình forward-backward (dữ liệu được tiền xử lý standardize)}
+        \end{subfigure}
+        \label{fig:Quantile-fitted-mbo}
+    \end{figure}
+
+    Tổng hợp lại sử dụng 5 mô hình:
 
     \begin{itemize}
         \item Mô hình gồm tất cả các biến (ký hiệu là full)
@@ -388,6 +794,34 @@ idx = np.argmax(gmeans)
 prob_star = thresholds[idx]
 gmean_star = gmeans[idx]
     \end{python}
+
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=1.0\textwidth]{figures/roc_curve_summary.png}
+        \caption{Tổng hợp kết quả các mô hình}
+        \label{fig:roc_curve_summary}
+    \end{figure}
+
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=1.0\textwidth]{figures/prob_box_plot.png}
+        \caption{So sánh kết quả đầu ra của một số mô hình dùng box plot}
+        \label{fig:prob_box_plot}
+    \end{figure}
+
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=1.0\textwidth]{figures/ROC_Curve_AIC_BIC_Excercise_2_1.png}
+        \caption{ So sánh đường cong ROC, $p^*$, G-Means tương ứng với $p^*$, chỉ số AIC, BIC của các mô hình được tối ưu hóa tham số ở bài tập 2 theo cách 1}
+        \label{fig:ROC_Curve_AIC_BIC_Excercise_2_1}
+    \end{figure}
+
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=1.0\textwidth]{figures/ROC_Curve_AIC_BIC_Excercise_2_2.png}
+        \caption{ So sánh đường cong ROC, $p^*$, G-Means tương ứng với $p^*$, chỉ số AIC, BIC của các mô hình được tối ưu hóa tham số ở bài tập 2 theo cách 2}
+        \label{fig:ROC_Curve_AIC_BIC_Excercise_2_2}
+    \end{figure}
 \end{loigiai}
 
 \newpage
