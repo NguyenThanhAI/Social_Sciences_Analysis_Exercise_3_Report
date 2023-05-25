@@ -309,6 +309,9 @@ V19	1	2.118068	173	65.34476	1.455701e-01
 V56	1	2.415767	172	62.92900	1.201192e-01
     \end{verbatim}
 
+    Ta nhận thấy đa số các biến đều đóng góp vai trò đáng kể trong mô hình trừ một số biến như biến V38, V40, V59, V19, V56.
+    Bảng phương sai của mô hình minmax\_mf và standardize\_mf gần như giống hệt nhau.
+
     \begin{figure}[h!]
         \centering
         \begin{subfigure}[b]{0.4\textwidth}
@@ -322,8 +325,12 @@ V56	1	2.415767	172	62.92900	1.201192e-01
             \includegraphics[width=\textwidth]{figures/standardize_mf_quantile_resid.png}
             \caption{Quantile residual của mô hình forward (dữ liệu được tiền xử lý standardize)}
         \end{subfigure}
+        \caption{Quantile residual của mô hình forward}
         \label{fig:Quantile-resid-mf}
     \end{figure}
+
+    Hình \ref{fig:Quantile-resid-mf} cho ta thấy đồ thị Q-Q plot của mô hình forward.
+    Các điểm quantile residual đa số nằm sát trên đường thẳng chuẩn nhưng có đuôi khá dài.
 
     \begin{figure}[h!]
         \centering
@@ -338,8 +345,14 @@ V56	1	2.415767	172	62.92900	1.201192e-01
             \includegraphics[width=\textwidth]{figures/standardize_mf_cooks.png}
             \caption{Cooks distance của mô hình forward (dữ liệu được tiền xử lý standardize)}
         \end{subfigure}
+        \caption{Cooks distance của mô hình forward}
         \label{fig:Cooks-distance-mf}
     \end{figure}
+
+    Hình \ref{fig:Cooks-distance-mf} cho ta biểu diễn Cooks distance của các ví dụ học trong tập dữ liệu.
+    Để một ví dụ học được xem là một điểm ngoại lai thì Cook distance của phần tử phải lớn hơn n phân vị mức 0.5 của phân phối Fisher(p, n-p).
+    Ta tính phân vị mức của các mô hình trên rơi vào khoảng 0.98.
+    Như vậy mô hình forward không có điểm ngoại lai nào.
 
 
     \begin{figure}[h!]
@@ -355,8 +368,13 @@ V56	1	2.415767	172	62.92900	1.201192e-01
             \includegraphics[width=\textwidth]{figures/standardize_mf_fitted.png}
             \caption{Quantile residual theo fitted value của mô hình forward (dữ liệu được tiền xử lý standardize)}
         \end{subfigure}
+        \caption{Quantile residual theo fitted value của mô hình forward}
         \label{fig:Quantile-fitted-mf}
     \end{figure}
+
+    Từ hình \ref{fig:Quantile-fitted-mf} ta thấy mô hình forward  thể hiện khá tốt các giả định lý
+    thuyết khi mà quantile residual ngẫu nhiên xung quanh điểm 0 và so với giá trị $\eta$ (log-odd) của mô
+    hình cho thấy các ví dụ độc lập với nhau.
 
     Ta kiểm định các hệ số của mô hình forward sử dụng likelihood ratio test:
 
@@ -468,6 +486,7 @@ V58	1	73.797803271	170	2.848136e-06	8.654286e-18
             \includegraphics[width=\textwidth]{figures/standardize_mb_quantile_resid.png}
             \caption{Quantile residual của mô hình backward (dữ liệu được tiền xử lý standardize)}
         \end{subfigure}
+        \caption{Quantile residual của mô hình backward}
         \label{fig:Quantile-resid-mb}
     \end{figure}
 
@@ -485,6 +504,7 @@ V58	1	73.797803271	170	2.848136e-06	8.654286e-18
             \includegraphics[width=\textwidth]{figures/standardize_mb_cooks.png}
             \caption{Cooks distance của mô hình backward (dữ liệu được tiền xử lý standardize)}
         \end{subfigure}
+        \caption{Cooks distance của mô hình backward}
         \label{fig:Cooks-distance-mb}
     \end{figure}
 
@@ -501,6 +521,7 @@ V58	1	73.797803271	170	2.848136e-06	8.654286e-18
             \includegraphics[width=\textwidth]{figures/standardize_mb_fitted.png}
             \caption{Quantile residual theo fitted value của mô hình backward (dữ liệu được tiền xử lý standardize)}
         \end{subfigure}
+        \caption{Quantile residual theo fitted value của mô hình backward}
         \label{fig:Quantile-fitted-mb}
     \end{figure}
 
@@ -573,6 +594,7 @@ V50	1	5.2407937	190	145.5633	2.206321e-02
             \includegraphics[width=\textwidth]{figures/standardize_mbo_quantile_resid.png}
             \caption{Quantile residual của mô hình forward-backward (dữ liệu được tiền xử lý standardize)}
         \end{subfigure}
+        \caption{Quantile residual của mô hình forward-backward}
         \label{fig:Quantile-resid-mbo}
     \end{figure}
 
@@ -589,6 +611,7 @@ V50	1	5.2407937	190	145.5633	2.206321e-02
             \includegraphics[width=\textwidth]{figures/standardize_mbo_cooks.png}
             \caption{Cooks distance của mô hình forward-backward (dữ liệu được tiền xử lý standardize)}
         \end{subfigure}
+        \caption{Cooks distance của mô hình forward-backward}
         \label{fig:Cooks-distance-mbo}
     \end{figure}
 
@@ -605,6 +628,7 @@ V50	1	5.2407937	190	145.5633	2.206321e-02
             \includegraphics[width=\textwidth]{figures/standardize_mbo_fitted.png}
             \caption{Quantile residual theo fitted value của mô hình forward-backward (dữ liệu được tiền xử lý standardize)}
         \end{subfigure}
+        \caption{Quantile residual theo fitted value của mô hình forward-backward}
         \label{fig:Quantile-fitted-mbo}
     \end{figure}
 
