@@ -1380,5 +1380,1126 @@ weighted avg    0.77      0.77      0.77        84
     \caption{Điều chỉnh tốc độ học theo phương pháp cosine}
 \end{algorithm}
 
+\newpage
+\section{Chương trình các file}
 
+\subsection{optimizers.py - File cài đặt các thuật toán tối ưu hóa}
+
+\begin{python}
+from abc import ABC, abstractclassmethod
+from typing import Tuple
+
+import numpy as np
+
+from schedulers import LRScheduler
+
+
+class Optimizer(ABC):
+    
+    @abstractclassmethod
+    def step(self):
+        pass
+    
+    
+
+class GradientDescentOptimizer(Optimizer):
+    
+    def __init__(self, lrscheduler: LRScheduler) -> None:
+        super().__init__()
+        self.lrscheduler = lrscheduler
+        #self.regularizer = regularizer
+        
+        
+    def step(self, weights: np.ndarray, dweights: np.ndarray) -> np.ndarray:
+        
+        lr = self.lrscheduler.step()
+        
+        weights -= lr * dweights
+        
+        return weights
+    
+    
+class AdamOptimizer(Optimizer):
+    def __init__(self, lrscheduler: LRScheduler, beta_1: float=0.5, beta_2: float=0.99) -> None:
+        super().__init__()
+        self.lrscheduler = lrscheduler
+        self.beta_1 = beta_1
+        self.beta_2 = beta_2
+        self.m: np.ndarray = None
+        self.v: np.ndarray = None
+        
+    def init_state(self, weights: np.ndarray) -> None:
+        self.m = np.zeros_like(weights)
+        self.v = np.zeros_like(weights)
+    
+    
+    @staticmethod
+    def adam_step(dweights: np.ndarray, m: np.ndarray, v: np.ndarray, t: int, beta_1: float=0.5, beta_2: float=0.99, epsilon: float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        m = beta_1 * m + (1 - beta_1) * dweights
+        v = beta_2 * v + (1 - beta_2) * dweights**2
+
+        m_hat = m / (1 - beta_1**t)
+        v_hat = v / (1 - beta_2**t)
+
+        p = m_hat / (np.sqrt(v_hat) + epsilon)
+
+        return p, m, v
+    
+    def step(self, weights: np.ndarray, dweights: np.ndarray) -> np.ndarray:
+        
+        if self.m is None or self.v is None:
+            self.init_state(weights=weights)
+        
+        lr = self.lrscheduler.step()
+        t = self.lrscheduler.get_stamp()
+        
+        p, self.m, self.v = self.adam_step(dweights=dweights, m=self.m, v=self.v, t=t,
+                                           beta_1=self.beta_1, beta_2=self.beta_2)
+        
+        weights -= lr * p
+        
+        return weights
+    
+    
+class AvagradOptimizer(Optimizer):
+    
+    def __init__(self, lrscheduler: LRScheduler, beta_1: float=0.5, beta_2: float=0.99) -> None:
+        super().__init__()
+        self.lrscheduler = lrscheduler
+        self.beta_1 = beta_1
+        self.beta_2 = beta_2
+        self.m: np.ndarray = None
+        self.v: np.ndarray = None
+        
+    def init_state(self, weights: np.ndarray) -> None:
+        self.m = np.zeros_like(weights)
+        self.v = np.zeros_like(weights)
+    
+    @staticmethod    
+    def avagrad_step(dweights: np.ndarray, m: np.ndarray, v: np.ndarray, beta_1: float=0.5, beta_2: float=0.99, epsilon: float=1e-8) -> np.ndarray:
+        d = dweights.shape[0]
+        m = beta_1 * m + (1 - beta_1) * dweights
+
+        eta = 1 / (np.sqrt(v) + epsilon)
+
+        p = (eta / np.linalg.norm(eta/np.sqrt(d))) * m
+
+        v = beta_2 * v + (1 - beta_2) * dweights**2
+
+        return p, m, v
+    
+    def step(self, weights: np.ndarray, dweights: np.ndarray) -> np.ndarray:
+        
+        if self.m is None or self.v is None:
+            self.init_state(weights=weights)
+            
+        
+        lr = self.lrscheduler.step()
+        
+        p, self.m, self.v = self.avagrad_step(dweights=dweights, m=self.m, v=self.v, beta_1=self.beta_1, beta_2=self.beta_2)
+        
+        weights -= lr * p
+        
+        return weights
+        
+
+class RadamOptimizer(Optimizer):
+    def __init__(self, lrscheduler: LRScheduler, beta_1: float=0.5, beta_2: float=0.99) -> None:
+        super().__init__()
+        self.lrscheduler = lrscheduler
+        self.beta_1 = beta_1
+        self.beta_2 = beta_2
+        self.m: np.ndarray = None
+        self.v: np.ndarray = None
+        
+    def init_state(self, weights: np.ndarray) -> None:
+        self.m = np.zeros_like(weights)
+        self.v = np.zeros_like(weights)
+        
+        
+    @staticmethod
+    def radam_step(dweights: np.ndarray, m: np.ndarray, v: np.ndarray, t: int, beta_1: float=0.5, beta_2: float=0.99, epsilon: float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        rho_inf = (2 / (1 - beta_2)) - 1
+
+        m = beta_1 * m + (1 - beta_1) * dweights
+        v = beta_2 * v + (1 - beta_2) * dweights**2
+
+        m_hat = m / (1 - beta_1**t)
+
+        rho = rho_inf - (2 * t * beta_2**t) / (1 - beta_2**t)
+
+        if rho > 4:
+            v_hat = np.sqrt(v / (1 - beta_2**t))
+            r = np.sqrt(((rho - 4) * (rho - 2) * rho_inf)/((rho_inf - 4) * (rho_inf - 2) * rho))
+            p = (r * m_hat) / (v_hat + epsilon)
+        else:
+            p = m_hat
+
+        return p, m, v
+    
+    
+    def step(self, weights: np.ndarray, dweights: np.ndarray) -> np.ndarray:
+        if self.m is None or self.v is None:
+            self.init_state(weights=weights)
+        
+        lr = self.lrscheduler.step()
+        t = self.lrscheduler.get_stamp()
+        
+        p, self.m, self.v = self.radam_step(dweights=dweights, m=self.m, v=self.v, t=t,
+                                            beta_1=self.beta_1, beta_2=self.beta_2)
+        
+        weights -= lr * p
+        
+        return weights
+    
+    
+class AdamaxOptimizer(Optimizer):
+    def __init__(self, lrscheduler: LRScheduler, beta_1: float=0.5, beta_2: float=0.99) -> None:
+        super().__init__()
+        self.lrscheduler = lrscheduler
+        self.beta_1 = beta_1
+        self.beta_2 = beta_2
+        self.m: np.ndarray = None
+        self.u: np.ndarray = None
+        
+        
+    def init_state(self, weights: np.ndarray) -> None:
+        self.m = np.zeros_like(weights)
+        self.u = np.zeros_like(weights)
+        
+    @staticmethod
+    def adamax_step(dweights: np.ndarray, m: np.ndarray, u: float, t: int, beta_1: float=0.9, beta_2: float=0.99, epsilon: float=1e-8) -> Tuple[np.ndarray, np.ndarray, float]:
+
+        m = beta_1 * m + (1 - beta_1) * dweights
+        u = np.maximum(beta_2 * u, np.max(dweights))
+
+        p =  m / ((1 - beta_1**t) * u + epsilon)
+
+        return p, m, u
+    
+    def step(self, weights: np.ndarray, dweights: np.ndarray) -> np.ndarray:
+        if self.m is None or self.u is None:
+            self.init_state(weights=weights)
+            
+        lr = self.lrscheduler.step()
+        t = self.lrscheduler.get_stamp()
+        
+        p, self.m, self.u = self.adamax_step(dweights=dweights, m=self.m, u=self.u, t=t,
+                                             beta_1=self.beta_1, beta_2=self.beta_2)
+        
+        weights -= lr * p
+        
+        return weights
+    
+    
+    
+class NadamOptimizer(Optimizer):
+    def __init__(self, lrscheduler: LRScheduler, beta_1: float=0.5, beta_2: float=0.99) -> None:
+        super().__init__()
+        self.lrscheduler = lrscheduler
+        self.beta_1 = beta_1
+        self.beta_2 = beta_2
+        self.m: np.ndarray = None
+        self.v: np.ndarray = None
+        
+    def init_state(self, weights: np.ndarray) -> None:
+        self.m = np.zeros_like(weights)
+        self.v = np.zeros_like(weights)
+        
+    @staticmethod
+    def nadam_step(dweights: np.ndarray, m: np.ndarray, v: np.ndarray, t: int, beta_1: float=0.5, beta_2: float=0.99, epsilon: float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        m = beta_1 * m + (1 - beta_1) * dweights
+        v = beta_2 * v + (1 - beta_2) * dweights**2
+
+        m_hat = m / (1 - beta_1**t)
+        v_hat = v / (1 - beta_2**t)
+
+        p = (beta_1 * m_hat + ((1 - beta_1)/(1 - beta_1**t))*dweights) / (np.sqrt(v_hat) + epsilon)
+
+        return p, m, v
+    
+    
+    def step(self, weights: np.ndarray, dweights: np.ndarray) -> np.ndarray:
+        if self.m is None or self.v is None:
+            self.init_state(weights=weights)
+        
+        lr = self.lrscheduler.step()
+        t = self.lrscheduler.get_stamp()
+        
+        p, self.m, self.v = self.nadam_step(dweights=dweights, m=self.m, v=self.v, t=t,
+                                            beta_1=self.beta_1, beta_2=self.beta_2)
+        
+        weights -= lr * p
+        
+        return weights
+    
+    
+class AMSGradOptimizer(Optimizer):
+    def __init__(self, lrscheduler: LRScheduler, beta_1: float=0.5, beta_2: float=0.99) -> None:
+        super().__init__()
+        self.lrscheduler = lrscheduler
+        self.beta_1 = beta_1
+        self.beta_2 = beta_2
+        self.m: np.ndarray = None
+        self.v: np.ndarray = None
+        self.v_hat: np.ndarray = None
+        
+        
+    def init_state(self, weights: np.ndarray) -> None:
+        self.m = np.zeros_like(weights)
+        self.v = np.zeros_like(weights)
+        self.v_hat = np.zeros_like(weights)
+        
+    @staticmethod
+    def amsgrad_step(dweights: np.ndarray, m: np.ndarray, v: np.ndarray, v_hat: np.ndarray, t: int, beta_1: float=0.5, beta_2: float=0.99, epsilon: float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        m = beta_1 * m + (1 - beta_1) * dweights
+        v = beta_2 * v + (1 - beta_2) * dweights**2
+
+        v_hat = np.maximum(v_hat, v)
+
+        p =  m / (np.sqrt(v_hat) + epsilon)
+
+        return p, m, v, v_hat
+    
+    
+    def step(self, weights: np.ndarray, dweights: np.ndarray) -> np.ndarray:
+        if self.m is None or self.v is None or self.v_hat is None:
+            self.init_state(weights=weights)
+        
+        lr = self.lrscheduler.step()
+        t = self.lrscheduler.get_stamp()
+        
+        p, self.m, self.v, self.v_hat = self.amsgrad_step(dweights=dweights, m=self.m, v=self.v, v_hat=self.v_hat, t=t,
+                                                          beta_1=self.beta_1, beta_2=self.beta_2)
+        
+        weights -= lr * p
+        
+        return weights
+    
+    
+class AdaBeliefOptimizer(Optimizer):
+    def __init__(self, lrscheduler: LRScheduler, beta_1: float=0.5, beta_2: float=0.99) -> None:
+        super().__init__()
+        self.lrscheduler = lrscheduler
+        self.beta_1 = beta_1
+        self.beta_2 = beta_2
+        self.m: np.ndarray = None
+        self.v: np.ndarray = None
+        
+    def init_state(self, weights: np.ndarray) -> None:
+        self.m = np.zeros_like(weights)
+        self.v = np.zeros_like(weights)
+        
+    @staticmethod
+    def adabelief_step(dweights: np.ndarray, m: np.ndarray, v: np.ndarray, t: int, beta_1: float=0.5, beta_2: float=0.99, epsilon: float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        m = beta_1 * m + (1 - beta_1) * dweights
+        v = beta_2 * v + (1 - beta_2) * (dweights - m) ** 2
+
+        m_hat = m / (1 - beta_1**t)
+        v_hat = v / (1 - beta_2**t)
+
+        p = m_hat / (np.sqrt(v_hat) + epsilon)
+
+        return p, m, v
+    
+    def step(self, weights: np.ndarray, dweights: np.ndarray) -> np.ndarray:
+        if self.m is None or self.v is None:
+            self.init_state(weights=weights)
+        
+        lr = self.lrscheduler.step()
+        t = self.lrscheduler.get_stamp()
+        
+        p, self.m, self.v = self.adabelief_step(dweights=dweights, m=self.m, v=self.v, t=t,
+                                                beta_1=self.beta_1, beta_2=self.beta_2)
+        
+        weights -= lr * p
+        
+        return weights
+    
+    
+class AdagradOptimizer(Optimizer):
+    def __init__(self, lrscheduler: LRScheduler) -> None:
+        super().__init__()
+        self.lrscheduler = lrscheduler
+        self.v: np.ndarray = None
+        
+    
+    def init_state(self, weights: np.ndarray) -> None:
+        self.v = np.zeros_like(weights)
+        
+        
+    @staticmethod
+    def adagrad_step(dweights: np.ndarray, v: np.ndarray, epsilon: float=1e-8) -> Tuple[np.ndarray, np.ndarray]:
+        v = v + dweights**2
+
+        p = dweights / (np.sqrt(v) + epsilon)
+
+        return p, v
+    
+    
+    def step(self, weights: np.ndarray, dweights: np.ndarray) -> np.ndarray:
+        if self.v is None:
+            self.init_state(weights=weights)
+        
+        lr = self.lrscheduler.step()
+        
+        p, self.v = self.adagrad_step(dweights=dweights, v=self.v)
+        
+        weights -= lr * p
+        
+        return weights
+    
+    
+class RMSPropOptimizer(Optimizer):
+    def __init__(self, lrscheduler: LRScheduler, beta_2=0.9) -> None:
+        super().__init__()
+        self.lrscheduler = lrscheduler
+        self.beta_2 = beta_2
+        self.v: np.ndarray = None
+        
+    
+    def init_state(self, weights: np.ndarray) -> None:
+        self.v = np.zeros_like(weights)
+    
+    @staticmethod
+    def rmsprop_step(dweights: np.ndarray, v: np.ndarray, beta_2: float=0.9, epsilon: float=1e-8) -> Tuple[np.ndarray, np.ndarray]:
+        v = beta_2 * v + (1 - beta_2) * dweights ** 2
+
+        p = dweights / (np.sqrt(v) + epsilon)
+
+        return p, v
+    
+    
+    def step(self, weights: np.ndarray, dweights: np.ndarray) -> np.ndarray:
+        if self.v is None:
+            self.init_state(weights=weights)
+        
+        lr = self.lrscheduler.step()
+        
+        p, self.v = self.rmsprop_step(dweights=dweights, v=self.v, beta_2=self.beta_2)
+        
+        weights -= lr * p
+        
+        return weights
+    
+    
+class MomentumOptimizer(Optimizer):
+    def __init__(self, lrscheduler: LRScheduler, beta_1=0.9) -> None:
+        super().__init__()
+        self.lrscheduler = lrscheduler
+        self.beta_1 = beta_1
+        self.m: np.ndarray = None
+        
+    
+    def init_state(self, weights: np.ndarray) -> None:
+        self.m = np.zeros_like(weights)
+        
+        
+    @staticmethod
+    def momentum_step(dweights: np.ndarray, m: np.ndarray, beta_1: float=0.9) -> Tuple[np.ndarray, np.ndarray]:
+        m = beta_1 * m + (1 - beta_1) * dweights
+
+        p = m
+
+        return p, m
+    
+    def step(self, weights: np.ndarray, dweights: np.ndarray) -> np.ndarray:
+        if self.m is None:
+            self.init_state(weights=weights)
+        
+        lr = self.lrscheduler.step()
+        
+        p, self.m = self.momentum_step(dweights=dweights, m=self.m, beta_1=self.beta_1)
+        
+        weights -= lr * p
+        
+        return weights
+    
+    
+class AdadeltaOptimizer(Optimizer):
+    def __init__(self, lrscheduler: LRScheduler, beta_2=0.9) -> None:
+        super().__init__()
+        self.lrscheduler = lrscheduler
+        self.beta_2 = beta_2
+        self.v: np.ndarray = None
+        self.d: np.ndarray = None
+        
+    def init_state(self, weights: np.ndarray) -> None:
+        self.v = np.zeros_like(weights)
+        self.d = np.zeros_like(weights)
+        
+    
+    @staticmethod
+    def adadelta_step(dweights: np.ndarray, v: np.ndarray, d: np.ndarray, alpha: float, beta_2: float=0.99, epsilon: float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        v = beta_2 * v + (1 - beta_2) * dweights ** 2
+
+        p = (np.sqrt(d + epsilon) * dweights) / (np.sqrt(v + epsilon))
+
+        delta_w = - alpha * p
+
+        d = beta_2 * d + (1 - beta_2) * delta_w ** 2
+
+        return p, v, d
+    
+    
+    def step(self, weights: np.ndarray, dweights: np.ndarray) -> np.ndarray:
+        if self.v is None or self.d is None:
+            self.init_state(weights=weights)
+        
+        lr = self.lrscheduler.step()
+        t = self.lrscheduler.get_stamp()
+        
+        p, self.v, self.d = self.adadelta_step(dweights=dweights, 
+                                               v=self.v, 
+                                               d=self.d, 
+                                               alpha=lr,
+                                               beta_2=self.beta_2)
+        
+        weights -= lr * p
+        
+        return weights
+    
+    
+\end{python}
+
+\subsection{schedulers.py - File cài đặt các phương pháp điều chỉnh tốc độ học}
+
+\begin{python}
+from abc import ABC, abstractmethod
+
+import numpy as np
+    
+class LRScheduler(ABC):
+    
+    @abstractmethod
+    def step(self):
+        pass
+    
+    @abstractmethod
+    def get_stamp(self):
+        pass
+    
+    
+class LRFixedScheduler(ABC):
+    def __init__(self, init_lr: float) -> None:
+        super().__init__()
+        self.init_lr: float = init_lr
+        self.num_steps: int = 0
+        self.lr = init_lr
+        
+        
+    def step(self) -> float:
+        self.num_steps += 1
+        return self.lr
+    
+    
+    def get_stamp(self) -> int:
+        return self.num_steps
+    
+    
+class InverseDecayScheduler(ABC):
+    def __init__(self, init_lr: float) -> None:
+        super().__init__()
+        self.init_lr: float = init_lr
+        self.num_steps: int = 0
+        self.lr = init_lr
+        
+        
+    def step(self) -> float:
+        self.num_steps += 1
+        return self.lr / self.num_steps
+    
+    
+    def get_stamp(self) -> int:
+        return self.num_steps
+    
+    
+class CyclicScheduler(LRScheduler):
+    def __init__(self, min_lr: float=1e-5, max_lr: float=1e-2, num_increase: int=50, num_decrease: int=50) -> None:
+        super().__init__()
+        self.num_steps: int = 0
+        self.lr = min_lr
+        self.min_lr = min_lr
+        self.max_lr = max_lr
+        self.num_increase  = num_increase
+        self.num_decrease = num_decrease
+        
+    def step(self) -> float:
+        self.num_steps += 1
+    
+        res_step = self.num_steps % (self.num_increase + self.num_decrease)
+
+        if res_step <= self.num_increase:
+            self.lr =  self.min_lr + (self.max_lr - self.min_lr) * res_step / self.num_increase
+        else:
+            self.lr = self.max_lr - (self.max_lr - self.min_lr) * (res_step - self.num_increase) / (self.num_decrease)
+            
+        return self.lr
+    
+    def get_stamp(self) -> int:
+        return self.num_steps
+    
+    
+
+class LinearLRDecay(LRScheduler):
+    def __init__(self, init_lr: float, min_lr: float=1e-6, max_steps: int=10000) -> None:
+        super().__init__()
+        self.init_lr: float = init_lr
+        self.min_lr: float = min_lr
+        self.num_steps: int = 0
+        self.lr = init_lr
+        self.max_steps: int = max_steps
+        
+    
+    def step(self) -> float:
+        self.num_steps += 1
+        
+        if self.num_steps >= self.max_steps:
+            self.lr = self.min_lr
+        else:
+            self.lr = self.init_lr - self.num_steps * (self.init_lr - self.min_lr) / self.max_steps
+            
+        return self.lr
+    
+    
+    def get_stamp(self) -> int:
+        return self.num_steps
+    
+    
+class ExponentialDecayScheduler(LRScheduler):
+    def __init__(self, init_lr: float, alpha: float=0.001) -> None:
+        super().__init__()
+        self.init_lr: float = init_lr
+        self.alpha = alpha
+        self.num_steps: int = 0
+        self.lr = init_lr
+        
+        
+    def step(self) -> float:
+        self.num_steps += 1
+        self.lr = self.init_lr * np.exp(-self.alpha*self.num_steps)
+        return self.lr
+    
+    
+    def get_stamp(self) -> int:
+        return self.num_steps
+    
+    
+class FactorDecayScheduler(LRScheduler):
+    def __init__(self, init_lr: float, alpha: float=0.2, cycle: int=1000) -> None:
+        super().__init__()
+        self.init_lr: float = init_lr
+        self.alpha = alpha
+        self.cycle = cycle
+        self.num_steps: int = 0
+        self.lr = init_lr
+        
+    def step(self) -> float:
+        self.num_steps += 1
+        if self.num_steps % self.cycle == 0:
+            self.lr *= self.alpha
+        
+        return self.lr
+    
+    def get_stamp(self) -> int:
+        return self.num_steps
+    
+
+class SquareRootScheduler(LRScheduler):
+    def __init__(self, init_lr: float) -> None:
+        super().__init__()
+        self.init_lr: float = init_lr
+        self.num_steps: int = 0
+        self.lr = init_lr
+        
+        
+    def step(self) -> float:
+        self.num_steps += 1
+        self.lr = self.init_lr / (np.sqrt(self.num_steps))
+        return self.lr
+    
+    
+    def get_stamp(self) -> int:
+        return self.num_steps
+    
+    
+class CosineLRSccheduler(LRScheduler):
+    def __init__(self, min_lr: float=1e-5, max_lr: float=1e-2, max_steps: int=10000) -> None:
+        super().__init__()
+        self.min_lr = min_lr
+        self.max_lr = max_lr
+        self.num_steps = 0
+        self.max_steps = max_steps
+        self.lr = max_lr
+        
+    def step(self) -> float:
+        self.num_steps += 1
+        self.lr = self.min_lr + 0.5 * (self.max_lr - self.min_lr) * (1 + np.cos((self.num_steps * np.pi)/self.max_steps))
+        return self.lr
+    
+    
+    def get_stamp(self) -> int:
+        return self.num_steps
+\end{python}
+
+\subsection{utils.py - File chứa các hàm tiện ích}
+
+\begin{python}
+from typing import List, Tuple, Optional
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
+from sklearn.metrics import auc
+from sklearn.model_selection import train_test_split
+
+from schedulers import *
+from optimizers import *
+
+
+def pca(x: np.ndarray, alpha: float=0.95) -> Tuple[np.ndarray, np.ndarray]:
+    
+    mu = np.mean(x, axis=0, keepdims=True)
+
+    x_mu = x - mu
+
+    cov_matrix = np.matmul(x_mu.T, x_mu) / x.shape[0]
+
+    w, v = np.linalg.eig(cov_matrix)
+
+    order = np.argsort(w)[::-1]
+
+    w = w[order]
+    v = v[:, order]
+
+    rate = np.cumsum(w) / np.sum(w)
+
+    r = np.where(rate >= alpha)
+
+    U = v[:, :(r[0][0] + 1)]
+
+    reduced_x = np.matmul(x, U)
+
+    #print(reduced_x)
+
+    return U, reduced_x
+
+def plot_roc_curve(tpr, fpr):
+    roc_auc = auc(fpr, tpr)
+    plt.title("Receiver Operating Characteristic")
+    plt.plot(fpr, tpr, "b", label = "AUC = %0.2f" % roc_auc)
+    plt.legend(loc = "lower right")
+    plt.plot([0, 1], [0, 1],"r--")
+    plt.ylabel("True Positive Rate")
+    plt.xlabel("False Positive Rate")
+    plt.grid()
+    plt.show()
+
+
+def create_data(csv_path: str, split_ratio: float=0.4, normalize: str="standardize", chosen_features: str=None, random_state: int=42, use_bias: bool=False) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    df = pd.read_csv(csv_path)
+    
+    x = df.drop("Class", axis=1).to_numpy()
+    y = df["Class"]
+    y = LabelEncoder().fit_transform(y)
+    
+    if normalize.lower() == "identity":
+        x = x
+    elif normalize.lower() == "minmax":
+        #x = (x - np.min(x, axis=0, keepdims=True))/(np.max(x, axis=0, keepdims=True) - np.min(x, axis=0, keepdims=True))
+        x = MinMaxScaler().fit_transform(x)
+    elif normalize.lower() == "standardize":
+        #mean_x = np.mean(x, axis=0)
+        #variance = np.sum((x - mean_x[np.newaxis, :])**2, axis=0)/(x.shape[0]-1)
+        #std = np.sqrt(variance)
+        #x = (x - mean_x[np.newaxis, :]) / std[np.newaxis, :]
+        x = StandardScaler().fit_transform(x)
+    else:
+        raise ValueError("No normalizing initializer name {}".format(normalize))
+    
+    if chosen_features is None:
+        pass
+    elif chosen_features.startswith("pca"):
+        rate = float(chosen_features.split("_")[1]) / 100
+        U, x = pca(x=x, alpha=rate)
+    else:
+        x = x[:, list(map(lambda x: int(x.strip()[1:])-1, chosen_features.split("+")))]
+        
+    if use_bias:
+        ones = np.ones(shape=[x.shape[0], 1], dtype=np.float32)
+        x = np.append(x, ones, axis=1)
+     
+    x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=split_ratio, stratify=y, random_state=random_state)
+    
+    return x_train, y_train, x_val, y_val
+
+
+class AverageMeter(object):
+
+    def __init__(self, name, fmt=":f"):
+        self.name = name
+        self.fmt = fmt
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
+
+    def __str__(self):
+        fmtstr = "{name} {val" + self.fmt + "} ({avg" + self.fmt + "})"
+        return fmtstr.format(**self.__dict__)
+
+
+def construct_lrscheduler(lrscheduler_type: str, init_lr: float, cycle: int, max_steps: int) -> LRScheduler:
+    if lrscheduler_type == "fixed":
+        return LRFixedScheduler(init_lr=init_lr)
+    elif lrscheduler_type == "inverse_decay":
+        return InverseDecayScheduler(init_lr=init_lr)
+    elif lrscheduler_type == "cyclic":
+        return CyclicScheduler(max_lr=init_lr)
+    elif lrscheduler_type == "linear_decay":
+        return LinearLRDecay(init_lr=init_lr)
+    elif lrscheduler_type == "exponential_decay":
+        return ExponentialDecayScheduler(init_lr=init_lr, alpha=0.001)
+    elif lrscheduler_type == "factor_decay":
+        return FactorDecayScheduler(init_lr=init_lr, alpha=0.2, cycle=cycle)
+    elif lrscheduler_type == "squareroot":
+        return SquareRootScheduler(init_lr=init_lr)
+    elif lrscheduler_type == "cosine":
+        return CosineLRSccheduler(max_lr=init_lr, max_steps=max_steps)
+    else:
+        raise ValueError("{} is not supported scheduler type".format(lrscheduler_type))
+
+    
+def construct_optimizer(optimizer_type: str, lrscheduler: LRScheduler) -> Optimizer:
+    if optimizer_type.lower() == "gradient_descent":
+        return GradientDescentOptimizer(lrscheduler=lrscheduler)
+    elif optimizer_type.lower() == "adam":
+        return AdamOptimizer(lrscheduler=lrscheduler, beta_1=0.9, beta_2=0.99)
+    elif optimizer_type.lower() == "avagrad":
+        return AvagradOptimizer(lrscheduler=lrscheduler, beta_1=0.9, beta_2=0.9)
+    elif optimizer_type.lower() == "radam":
+        return RadamOptimizer(lrscheduler=lrscheduler, beta_1=0.9, beta_2=0.99)
+    elif optimizer_type.lower() == "adamax":
+        return AdamaxOptimizer(lrscheduler=lrscheduler, beta_1=0.9, beta_2=0.9)
+    elif optimizer_type.lower() == "nadam":
+        return NadamOptimizer(lrscheduler=lrscheduler, beta_1=0.9, beta_2=0.99)
+    elif optimizer_type.lower() == "amsgrad":
+        return AMSGradOptimizer(lrscheduler=lrscheduler, beta_1=0.9, beta_2=0.99)
+    elif optimizer_type.lower() == "adabelief":
+        return AdaBeliefOptimizer(lrscheduler=lrscheduler, beta_1=0.9, beta_2=0.99)
+    elif optimizer_type.lower() == "adagrad":
+        return AdagradOptimizer(lrscheduler=lrscheduler)
+    elif optimizer_type.lower() == "rmsprop":
+        return RMSPropOptimizer(lrscheduler=lrscheduler, beta_2=0.90)
+    elif optimizer_type.lower() == "momentum":
+        return MomentumOptimizer(lrscheduler=lrscheduler, beta_1=0.9)
+    elif optimizer_type.lower() == "adadelta":
+        return AdadeltaOptimizer(lrscheduler=lrscheduler, beta_2=0.99)
+    else:
+        raise ValueError("{} is not supported optimizer type".format(optimizer_type))
+
+
+def compute_aic(y_true: np.ndarray, y_pred_prob: np.ndarray, p: int, sample_size: int=0):
+    log_likelihood_elements = y_true*np.log(y_pred_prob + 1e-8) + (1-y_true)*np.log(1-y_pred_prob + 1e-8)
+    if sample_size > 0:
+        return -2 * sum(log_likelihood_elements) + np.log(sample_size) * p
+    else:
+        return -2 * sum(log_likelihood_elements) + 2 * p
+
+
+def compute_gmeans(tpr: np.ndarray, fpr: np.ndarray) -> np.ndarray:
+    return tpr * (1 - fpr)
+\end{python}
+
+\subsection{logistic.py - File chứa cài đặt mô hình Logistic Regression}
+\begin{python}
+import copy
+from tqdm import tqdm
+import numpy as np
+
+from sklearn.metrics import roc_curve, auc
+
+from utils import *
+
+
+class Logistic(object):
+    def __init__(self, optimizer_type: str, lrscheduler_type: str, seed: int, cycle: int, regularizer: str=None, init_lr: float=1e-3, weight_decay: float=1e-4, max_iter: int=10000, w_tol: float=1e-4, grad_tol: float=1e-4, limit_tol: int=5, use_bias: bool=True, initializer: str="xavier", num_steps_per_eval: int=100, verbosity: bool=True) -> None:
+        lrscheduler = construct_lrscheduler(lrscheduler_type=lrscheduler_type, init_lr=init_lr, cycle=cycle, max_steps=max_iter)
+        self.optimizer = construct_optimizer(optimizer_type=optimizer_type, lrscheduler=lrscheduler)
+        
+        self.seed = seed
+        np.random.seed(self.seed)
+        self.cycle = cycle
+        self.init_lr = init_lr
+        self.regularizer = regularizer
+        self.weight_decay = weight_decay
+        self.max_iter = max_iter
+        self.w_tol = w_tol
+        self.grad_tol = grad_tol
+        self.limit_tol = limit_tol
+        self.use_bias = use_bias
+        self.initializer = initializer
+        
+        self.weights = None
+        self.prev_weights = None
+        
+        self.num_steps_per_eval = num_steps_per_eval
+        self.verbosity = verbosity
+        
+        self.train_loss_meter = AverageMeter(name="train_loss", fmt=":.4f")
+        self.val_loss_meter = AverageMeter(name="val_loss", fmt=":.4f")
+        
+        self.train_loss = {}
+        self.val_loss = {}
+        self.train_auc = {}
+        self.val_auc = {}
+        self.train_aic = {}
+        self.val_aic = {}
+        self.train_bic = {}
+        self.val_bic = {}
+        
+        self.max_auc = 0
+        self.max_weights: np.ndarray = None
+        
+        
+    def init_weights(self, x: np.ndarray) -> None:
+
+        if self.use_bias:
+            if self.initializer == "xavier":
+                self.weights = np.random.normal(loc=0, scale=np.sqrt(2/(x.shape[1])), size=x.shape[1]-1)
+            else:
+                self.weights = np.random.rand(x.shape[1]-1)
+
+            self.weights = np.append(self.weights, 0.)
+
+        else:
+            if self.initializer == "xavier":
+                weights = np.random.normal(loc=0, scale=np.sqrt(2/(x.shape[1])), size=x.shape[1])
+            else:
+                weights = np.random.rand(x.shape[1])
+
+        self.prev_weights = np.zeros_like(self.weights)
+        
+    def get_weights(self):
+        return self.weights
+    
+    def set_weights(self, weights: np.ndarray):
+        self.weights = copy.deepcopy(weights)
+    
+    
+    @staticmethod
+    def sigmoid(xw: np.ndarray) -> np.ndarray:
+        return 1/(1 + np.exp(-xw))
+    
+    
+    def predict(self, x: np.ndarray,threshold: float=0.8, return_prob: bool=False):
+        if len(x.shape) > 1:
+            assert x.shape[1] == self.weights.shape[0]
+            xw = np.sum(x * self.weights[np.newaxis, :], axis=1)
+        else:
+            assert x.shape[0] == self.weights.shape[0]
+            xw = np.sum(x * self.weights)
+
+        prob = self.sigmoid(xw=xw)
+        if return_prob:
+            return prob
+        #print("prob: {}".format(prob))
+        else:
+            output = np.where(prob > threshold, 1, 0)
+            return output
+        
+    
+    def sigmoid_cross_entropy_with_logits(self, xw: np.ndarray, y: np.ndarray) -> float:
+        a = self.sigmoid(xw=xw)
+        cost = - np.mean(y * np.log(a + 1e-8) + (1 - y) * np.log(1-a + 1e-8))
+        return cost
+    
+    
+    @staticmethod
+    def sigmoid_cross_entropy_truncated(xw: np.ndarray, y: np.ndarray):
+        return np.mean(- y * xw + np.log(1+np.exp(xw)))
+    
+    
+    def sigmoid_cross_entropy_with_x_y(self, x: np.ndarray, y: np.ndarray) -> float:
+        if len(x.shape) > 1:
+            assert x.shape[1] == self.weights.shape[0]
+            xw = np.sum(x * self.weights[np.newaxis, :], axis=1)
+        else:
+            assert x.shape[0] == self.weights.shape[0]
+            xw = np.sum(x * self.weights)
+        #return sigmoid_cross_entropy_with_logits(xw=xw, y=y)
+        return self.sigmoid_cross_entropy_truncated(xw=xw, y=y)
+    
+    
+    def derivative_cost_wrt_params(self, x: np.ndarray, y: np.ndarray):
+        #assert x.shape[0] == y.shape[0]
+        if len(x.shape) > 1:
+            assert x.shape[1] == self.weights.shape[0]
+            xw = np.sum(x * self.weights[np.newaxis, :], axis=1)
+            sig = self.sigmoid(xw=xw)
+            return np.mean(- y[:, np.newaxis] * x + sig[:, np.newaxis] * x, axis=0)
+        else:
+            assert x.shape[0] == self.weights.shape[0]
+            xw = np.sum(x * self.weights)
+            sig = sig(xw=xw)
+            return - y[np.newaxis] * x + sig[np.newaxis] * x
+        
+    def get_total_cost(self, raw_cost: float) -> float:
+        if self.regularizer == "l2":
+            return raw_cost + self.weight_decay * np.sum(self.weights**2)
+        elif self.regularizer == "l1":
+            return raw_cost + self.weight_decay * np.sum(np.abs(self.weights))
+        else:
+            return raw_cost
+        
+    
+    def get_final_grad(self, raw_grad: np.ndarray) -> np.ndarray:
+        assert self.weights.shape[0] == raw_grad.shape[0]
+        if self.regularizer == "l2":
+            return raw_grad + 2 * self.weight_decay * self.weights
+        else:
+            return raw_grad
+        
+        
+    def soft_threshold(self) -> float:
+        return np.where(self.weights > self.weight_decay, self.weights - self.weight_decay, np.where(self.weights < - self.weight_decay, self.weights + self.weight_decay, 0))
+        
+        
+    def step(self, x: np.ndarray, y: np.ndarray):
+        dweights = self.derivative_cost_wrt_params(x=x, y=y)
+        
+        if self.regularizer == "l2":
+            dweights = self.get_final_grad(raw_grad=dweights)
+            
+        self.weights = self.optimizer.step(weights=self.weights, dweights=dweights)
+        
+        if self.regularizer == "l1":
+            self.weights = self.soft_threshold()
+        
+        diff_weights = np.sqrt(np.sum((self.weights - self.prev_weights)**2))
+        grad_norm = np.sqrt(np.sum(dweights**2))
+        
+        self.prev_weights = copy.deepcopy(self.weights)
+        
+        return diff_weights, grad_norm
+    
+    
+    def compute_auc_roc(self, x: np.ndarray, y: np.ndarray):
+        y_pred = self.predict(x=x, return_prob=True)
+        fpr, tpr, thresholds = roc_curve(y_true=y, y_score=y_pred)
+        area_roc = auc(fpr, tpr)
+        return area_roc
+    
+
+    def compute_aic(self, y_true: np.ndarray, y_pred_prob: np.ndarray, sample_size: int=0):
+        p = self.weights.shape[0]
+        #sample_size = y_true.shape[0]
+        log_likelihood_elements = y_true*np.log(y_pred_prob + 1e-8) + (1-y_true)*np.log(1-y_pred_prob + 1e-8)
+        if sample_size > 0:
+            return -2 * sum(log_likelihood_elements) + np.log(sample_size) * p
+        else:
+            return -2 * sum(log_likelihood_elements) + 2 * p
+        
+        
+    def compute_metrics(self, x: np.ndarray, y: np.ndarray) -> Tuple[float, float, float]:
+        y_pred = self.predict(x=x, return_prob=True)
+        fpr, tpr, thresholds = roc_curve(y_true=y, y_score=y_pred)
+        area_roc = auc(fpr, tpr)
+        aic = self.compute_aic(y_true=y, y_pred_prob=y_pred)
+        bic = self.compute_aic(y_true=y, y_pred_prob=y_pred, sample_size=y.shape[0])
+        
+        return area_roc, aic, bic
+    
+    
+    def plot_loss(self):
+        plt.title("Loss")
+        plt.plot(self.train_loss.keys(), self.train_loss.values(), label="train loss")
+        plt.plot(self.val_loss.keys(), self.val_loss.values(), label="val loss")
+        plt.legend(loc ="lower right")
+        plt.ylabel("Loss")
+        plt.xlabel("Step")
+        plt.grid()
+        plt.show()
+        
+        
+    def plot_roc(self, x: np.ndarray, y: np.ndarray):
+        y_pred = self.predict(x=x, return_prob=True)
+        fpr, tpr, thresholds = roc_curve(y_true=y, y_score=y_pred)
+        plot_roc_curve(tpr=tpr, fpr=fpr)
+        
+    def restore_best_weights(self) -> None:
+        if self.max_weights is not None:
+            self.weights = self.max_weights
+    
+    
+    def fit(self, train_x: np.ndarray, train_y: np.ndarray, val_x: np.ndarray, val_y: np.ndarray) -> None:
+        
+        self.init_weights(train_x)
+        
+        stop_tol = 0
+        auc_tol = 0
+        
+        for i in tqdm(range(self.max_iter)):
+            diff_weights, grad_norm = self.step(x=train_x, y=train_y)
+            
+            train_loss = self.sigmoid_cross_entropy_with_x_y(x=train_x, y=train_y)
+            self.train_loss[i+1] = train_loss
+            self.train_loss_meter.update(val=train_loss)
+            
+            val_loss = self.sigmoid_cross_entropy_with_x_y(x=val_x, y=val_y)
+            self.val_loss[i+1] = val_loss
+            self.val_loss_meter.update(val=val_loss)
+            
+
+            if (i + 1) % self.num_steps_per_eval == 0:
+                try:
+                    train_auc, train_aic, train_bic = self.compute_metrics(x=train_x, y=train_y)
+                    self.train_auc[i+1] = train_auc
+                    self.train_aic[i+1] = train_aic
+                    self.train_bic[i+1] = train_bic
+                    val_auc, val_aic, val_bic = self.compute_metrics(x=val_x, y=val_y)
+                    self.val_auc[i+1] = val_auc
+                    self.val_aic[i+1] = val_aic
+                    self.val_bic[i+1] = val_bic
+                    if val_auc > self.max_auc:
+                        self.max_auc = val_auc
+                        self.max_weights = copy.deepcopy(self.weights)
+                        auc_tol = 0
+                    else:
+                        auc_tol += 1
+                    if self.verbosity == True:
+                        print("Step {}, train AUC: {:.3f}, train AIC: {:.3f}, train BIC: {:.3f}, val AUC: {:.3f}, val AIC: {:.3f}, val BIC: {:.3f}, diff weights: {:.10f}, grad norm: {:.3f}".format(i + 1, train_auc, train_aic, train_bic, val_auc, val_aic, val_bic, diff_weights, grad_norm))
+
+                    if auc_tol >= self.limit_tol:
+                        print("AUC-ROC does not improve. Stop training")
+                        break
+                except ValueError:
+                    break
+                
+            if diff_weights <= self.w_tol and grad_norm <= self.grad_tol:
+                stop_tol += 1
+            else:
+                stop_tol = 0
+                
+            if stop_tol >= self.limit_tol:
+                break
+            
+        self.restore_best_weights()
+        if self.verbosity:
+            print("Model weights: {}".format(self.weights.tolist()))
+        print("Max val auc: {}".format(self.max_auc))
+        if self.verbosity:
+            self.plot_loss()
+            self.plot_roc(x=val_x, y=val_y)
+\end{python}
 \end{document}
