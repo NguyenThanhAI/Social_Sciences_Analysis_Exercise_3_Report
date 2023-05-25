@@ -372,11 +372,11 @@ V56	1	2.415767	172	62.92900	1.201192e-01
         \label{fig:Quantile-fitted-mf}
     \end{figure}
 
-    Từ hình \ref{fig:Quantile-fitted-mf} ta thấy mô hình forward  thể hiện khá tốt các giả định lý
+    Từ hình \ref{fig:Quantile-fitted-mf} ta thấy mô hình forward thể hiện khá tốt các giả định lý
     thuyết khi mà quantile residual ngẫu nhiên xung quanh điểm 0 và so với giá trị $\eta$ (log-odd) của mô
     hình cho thấy các ví dụ độc lập với nhau.
 
-    Ta kiểm định các hệ số của mô hình forward sử dụng likelihood ratio test:
+    Ta kiểm định các hệ số của mô hình backward sử dụng likelihood ratio test:
 
     \begin{verbatim}
 anova(minmax_m.b, test="Chisq")
@@ -490,6 +490,9 @@ V58	1	73.797803271	170	2.848136e-06	8.654286e-18
         \label{fig:Quantile-resid-mb}
     \end{figure}
 
+    Hình \ref{fig:Quantile-resid-mb} cho ta thấy đồ thị Q-Q plot của mô hình backward ứng với dữ liệu được tiền xử lý theo cách standardize không quá chuẩn.
+    Ta nhận thấy mô hình gần như không thỏa mãn về điều kiện quantile residual phải có phân phối chuẩn tắc.
+
 
     \begin{figure}[h!]
         \centering
@@ -508,6 +511,8 @@ V58	1	73.797803271	170	2.848136e-06	8.654286e-18
         \label{fig:Cooks-distance-mb}
     \end{figure}
 
+    Hình \ref{fig:Cooks-distance-mb} cho ta thấy ví dụ học số 99 có giá trị Cooks distance quá lớn so với các ví dụ còn lại.
+
     \begin{figure}[h!]
         \centering
         \begin{subfigure}[b]{0.4\textwidth}
@@ -525,7 +530,34 @@ V58	1	73.797803271	170	2.848136e-06	8.654286e-18
         \label{fig:Quantile-fitted-mb}
     \end{figure}
 
-    Ta kiểm định các hệ số của mô hình forward sử dụng likelihood ratio test:
+    Hình \ref{fig:Quantile-resid-mb} cho thấy mô hình backward các giá trị lại tập trung về hai phía của $\eta$ lý do là vì các tham số tương ứng với từng biến của mô hình backward quá lớn khiến cho giá trị $\eta$ được dùng để phân lớp quá rõ ràng trở nên rất lớn hoặc rất nhỏ.
+    Các hệ số học được của mô hình backward:
+
+    \begin{verbatim}
+summary(minmax_m.b)
+    \end{verbatim}
+
+    \begin{verbatim}
+        Coefficients:
+        Estimate Std. Error z value Pr(>|z|)
+(Intercept)     6357     472158   0.013    0.989
+V1             -2919     331827  -0.009    0.993
+V3              2744     398441   0.007    0.995
+V7              1373     108270   0.013    0.990
+V9             -1159      73803  -0.016    0.987
+V12            -4601     156363  -0.029    0.977
+V13             2275     105631   0.022    0.983
+V14            -1929     122348  -0.016    0.987
+V16             3245     357947   0.009    0.993
+V17             2646     112430   0.024    0.981
+V18            -4956     411919  -0.012    0.990
+V19             2785     315026   0.009    0.993
+V20            -6646     559139  -0.012    0.991
+V21             6759     449049   0.015    0.988
+V22            -8919     491708  -0.018    0.986
+    \end{verbatim}
+
+    Ta kiểm định các hệ số của mô hình forward-backward sử dụng likelihood ratio test:
 
     \begin{verbatim}
 anova(minmax_m.bo, test="Chisq")
@@ -581,6 +613,8 @@ V49	1	27.9711885	191	150.8041	1.231352e-07
 V50	1	5.2407937	190	145.5633	2.206321e-02
     \end{verbatim}
 
+    Từ bảng phân tích phương sai, hầu hết các biến đầu đóng vai trò đáng kể trong mô hình ngoại trừ biến V21 và biến V35
+
     \begin{figure}[h!]
         \centering
         \begin{subfigure}[b]{0.4\textwidth}
@@ -597,6 +631,9 @@ V50	1	5.2407937	190	145.5633	2.206321e-02
         \caption{Quantile residual của mô hình forward-backward}
         \label{fig:Quantile-resid-mbo}
     \end{figure}
+
+    Hình \ref{fig:Quantile-fitted-mbo} là đồ thị Q-Q plot của mô hình forward-backward cho thấy quantile residual có phân phối gần với phân phối chuẩn tắc.
+    Mô hình forward-backward thỏa mãn giả thiết về quantile residual phải có phân phối chuẩn tắc.
 
     \begin{figure}[h!]
         \centering
@@ -615,6 +652,9 @@ V50	1	5.2407937	190	145.5633	2.206321e-02
         \label{fig:Cooks-distance-mbo}
     \end{figure}
 
+    Hình \ref{fig:Quantile-fitted-mbo} cho thấy các giá trị Cooks distance của các ví dụ học khá nhỏ, lớn nhất bằng khoảng 0.12 trong khi phân vị mức F(0.5, 18, 208-18) có giá trị khoảng 0.9666.
+    Như vậy mô hình forward-backward thỏa mãn về giả thiết không có điểm ngoại lai.
+
     \begin{figure}[h!]
         \centering
         \begin{subfigure}[b]{0.4\textwidth}
@@ -632,13 +672,17 @@ V50	1	5.2407937	190	145.5633	2.206321e-02
         \label{fig:Quantile-fitted-mbo}
     \end{figure}
 
+    Từ hình \ref{fig:Quantile-fitted-mbo} ta thấy mô hình forward-backward thể hiện khá tốt các giả định lý
+    thuyết khi mà quantile residual ngẫu nhiên xung quanh điểm 0 và so với giá trị $\eta$ (log-odd) của mô
+    hình cho thấy các ví dụ độc lập với nhau.
+
     Tổng hợp lại sử dụng 5 mô hình:
 
     \begin{itemize}
         \item Mô hình gồm tất cả các biến (ký hiệu là full)
-        \item Mô hình forward được chọn ở bài tập trước (ký hiệu là m.f)
-        \item Mô hình backward được chọn ở bài tập trước (ký hiệu là m.b)
-        \item Mô hình forward-backward được chọn ở bài tập trước (ký hiệu là m.bo)
+        \item Mô hình forward được chọn ở trên (ký hiệu là m.f)
+        \item Mô hình backward được chọn ở trên (ký hiệu là m.b)
+        \item Mô hình forward-backward được chọn ở trên (ký hiệu là m.bo)
         \item Mô hình các biến được trích xuất từ thuật toán PCA giữ lại 95 \% thông tin (ký hiệu là pca\_x với x là thuật toán PCA giữ lại x \% thông tin)
     \end{itemize}
 
