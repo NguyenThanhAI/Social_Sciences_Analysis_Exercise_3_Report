@@ -686,7 +686,7 @@ V50	1	5.2407937	190	145.5633	2.206321e-02
         \item Mô hình các biến được trích xuất từ thuật toán PCA giữ lại 95 \% thông tin (ký hiệu là pca\_x với x là thuật toán PCA giữ lại x \% thông tin)
     \end{itemize}
 
-    Để chọn ra mô hình tốt nhất, mỗi mô hình đi kèm với cách chỉnh định sẽ được tối ưu hóa các siêu tham số gồm:
+    Để chọn ra mô hình tốt nhất, mỗi mô hình đi kèm với cách hiệu chỉnh sẽ được tối ưu hóa các siêu tham số gồm:
 
     \begin{itemize}
         \item Phương pháp tiền xử lý: min-max scaling, standardize.
@@ -714,7 +714,7 @@ V50	1	5.2407937	190	145.5633	2.206321e-02
     Các siêu tham số trên sẽ được huấn luyện sử dụng code python và numpy không sử dụng thư viện khác.
     Việc sử dụng code python và numpy để có thể thử với các thuật toán tối ưu hóa khác mà thư viện sklearn không có.
     Hệ số $\lambda$ trong quá trình huấn luyện các mô hình được tự cài đặt bằng python và numpy được cố định là 1e-3 (do hạn chế về mặt thời gian).
-    Kết quả của quá trình tối ưu hóa siêu tham số cho các mô hình được cài đặt bằng python và numpy được trình bày ở bảng \ref{tab:custom-hyperparameter-result} với cột bên trái ngoài cùng là loại mô hình (được hình thành từ các biến giải thích sử dụng và phương pháp chỉnh định) các cột bên phải là tổ hợp các siêu tham số tối ưu tương ứng.
+    Kết quả của quá trình tối ưu hóa siêu tham số cho các mô hình được cài đặt bằng python và numpy được trình bày ở bảng \ref{tab:custom-hyperparameter-result} với cột bên trái ngoài cùng là loại mô hình (được hình thành từ các biến giải thích sử dụng và phương pháp hiệu chỉnh) các cột bên phải là tổ hợp các siêu tham số tối ưu tương ứng.
 
     Ngoài ra ta vẫn huấn luyện một tập các mô hình được huấn luyện sử dụng thư viện sklearn.
     Vì vấn đề thời gian đối với các mô hình được huấn luyện trên sklearn chỉ gồm 3 mô hình:
@@ -739,10 +739,10 @@ V50	1	5.2407937	190	145.5633	2.206321e-02
         \end{itemize}
     \end{itemize}
 
-    Phương pháp chỉnh định "l1" được gọi là Lasso, phương pháp chỉnh định "l2" được gọi là Ridge, không chỉnh định ta gọi là Naive
-    Mỗi một cặp thông tin gồm phương pháp chỉnh định ("l1", "l2", không chỉnh định) và mô hình sẽ được chọn ra bộ siêu tham số tốt nhất từ các siêu tham số được đề cập ở trên bằng độ đo AUC-ROC trên tập test.
+    Phương pháp hiệu chỉnh "l1" được gọi là Lasso, phương pháp hiệu chỉnh "l2" được gọi là Ridge, không hiệu chỉnh ta gọi là Naive
+    Mỗi một cặp thông tin gồm phương pháp hiệu chỉnh ("l1", "l2", không hiệu chỉnh) và mô hình sẽ được chọn ra bộ siêu tham số tốt nhất từ các siêu tham số được đề cập ở trên bằng độ đo AUC-ROC trên tập test.
     Ta sẽ cố định tập test ngay từ đầu.
-    Như vậy ta sẽ có 5 (mô hình) $\times$ 3 ("l1"-lasso, "l2"-ridge, không chỉnh định) = 15 mô hình ứng viên được cài đặt bằng ngôn ngữ python và numpy được chọn từ quá trình tối ưu hóa siêu tham số và 9 mô hình ứng viên được huấn luyện bằng thư viện sklearn.
+    Như vậy ta sẽ có 5 (mô hình) $\times$ 3 ("l1"-lasso, "l2"-ridge, không hiệu chỉnh) = 15 mô hình ứng viên được cài đặt bằng ngôn ngữ python và numpy được chọn từ quá trình tối ưu hóa siêu tham số và 9 mô hình ứng viên được huấn luyện bằng thư viện sklearn.
     Như vậy ta có 24 mô hình ứng viên.
 
     Từ các mô hình ứng viên, để chọn ra mô hình tốt nhất từ nhiều yếu tố như $AUC-ROC, AIC, BIC$ cũng như từ trung bình hình học G-Means giữa độ nhạy (Sensitivity) và độ đặc hiệu (Specificity) ứng với ngưỡng xác suất $p^*$ ($p^*$ làm cho G-Means cực đại) được chọn.
@@ -785,7 +785,7 @@ V50	1	5.2407937	190	145.5633	2.206321e-02
             pca\_95 - Ridge & standardize & RAdam & fixed & 10 \\
             \hline
         \end{tabular}
-        \caption{Các siêu tham số tốt nhất với từng mô hình (mỗi mô hình được xác định bằng các biến \\ giải thích và phương pháp chỉnh định (naive, ridge, lasso))}
+        \caption{Các siêu tham số tốt nhất với từng mô hình (mỗi mô hình được xác định bằng các biến \\ giải thích và phương pháp hiệu chỉnh (naive, ridge, lasso))}
         \label{tab:custom-hyperparameter-result}
     \end{table}
 
@@ -816,15 +816,15 @@ V50	1	5.2407937	190	145.5633	2.206321e-02
             Sklearn pca\_95 - Ridge & 0 & minmax & lbfgs & 10 \\
             \hline
         \end{tabular}
-        \caption{Các siêu tham số tốt nhất với từng mô hình được huấn luyện sử dụng thư viện sklearn (mỗi mô hình được xác định bằng các biến giải thích và phương pháp chỉnh định (naive, ridge, lasso))}
+        \caption{Các siêu tham số tốt nhất với từng mô hình được huấn luyện sử dụng thư viện sklearn (mỗi mô hình được xác định bằng các biến giải thích và phương pháp hiệu chỉnh (naive, ridge, lasso))}
         \label{tab:sklearn-hyperparameter-result}
     \end{table}
 
     Random\_state được chính là seed để khởi tạo các tham số của mô hình.
     Còn tập dữ liệu được chia tập train và tập test một cách cố định từ ban đầu (sử dụng random\_state 42)
 
-    Kết quả của quá trình tối ưu hóa siêu tham số cho các mô hình được cài đặt bằng python và numpy được trình bày ở bảng \ref{tab:sklearn-hyperparameter-result}
-
+    Kết quả của quá trình tối ưu hóa siêu tham số cho các mô hình được cài đặt bằng python và numpy được trình bày ở bảng \ref{tab:custom-hyperparameter-result}.
+    Kết quả của quá trình tối ưu hóa siêu tham số cho các mô hình được cài đặt bằng sklearn được trình bày ở bảng \ref{tab:sklearn-hyperparameter-result}
 
     Để chọn ra ngưỡng xác suất $p^*$ tốt nhất với từng mô hình ta tìm ngưỡng xác suất sao cho cực đại hóa trung bình hình học giữa độ nhạy (Sensitivity) và độ đặc hiệu (Specificity).
     Ta có công thức tính các đại lượng trên:
@@ -863,21 +863,148 @@ prob_star = thresholds[idx]
 gmean_star = gmeans[idx]
     \end{python}
 
+    Ta sẽ lựa chọn mô hình dựa trên nhiều tiêu chí:
+
+    \begin{itemize}
+        \item AUC-ROC
+        \item G-Means
+        \item AIC
+        \item BIC
+    \end{itemize}
+
+    Công thức của BIC:
+
+    \begin{equation*}
+        BIC = -2 \log L + p\log n
+    \end{equation*}
+
+    với $p$ là số biến giải thích trong mô hình, $L$ là ước lượng hợp lý của mô hình, $n$ là số ví dụ của tập dữ liệu.
+
+    Trong mô hình logistic, ước lượng hợp lý bởi công thức:
+
+    \begin{equation*}
+        L = \prod_{i=1}^n p_i^{y_i}(1-p_i)^{1 - y_i}
+    \end{equation*}
+
+    với $p_i$ là xác suất đầu ra của mô hình với đầu vào là ví dụ thứ $i$ trong tập dữ liệu, $y_i$ là nhãn của dữ liệu thứ $i$.
+
+    Các đại lượng AIC, BIC tổng hòa khả năng giải thích của mô hình và có phạt độ phức tạp của mô hình (AIC chỉ phạt theo số biến giải thích, BIC phạt theo cả số biến giải thích và số ví dụ trong tập dữ liệu).
+
     \begin{figure}[h!]
         \centering
         \includegraphics[width=1.0\textwidth]{figures/roc_curve_summary.png}
         \caption{Tổng hợp kết quả các mô hình}
-        \label{fig:roc_curve_summary}
+        \label{fig:roc-curve-summary}
     \end{figure}
+
+    Hình \ref{fig:roc-curve-summary} tổng hợp kết quả của các mô hình gồm có thông tin về AUC-ROC, các thông số như AIC, BIC.
+    Các mô hình có tiền tố "Sklearn" có ý nghĩa rằng mô hình được huấn luyện sử dụng thư viện sklearn để phân biệt với các mô hình được cài đặt bằng python và numpy.
+    Để tìm ngưỡng xác suất tối ưu để phân lớp ta sử dụng trung bình hình học của độ nhạy (Sensitivity) và độ đặc hiệu (Specificity).
+
+    Ta nhận thấy một số mô hình có cả kết quả về G-Means cực đại, AUC-ROC và chỉ số AIC đều tốt như:
+
+    \begin{itemize}
+        \item m.bo-Ridge với $p^*=0.5335$, AUC = 0.89, G-Means = 0.75, AIC = 120.36, BIC = 161.68
+        \item m.bo-Naive với $p^*=0.6456$, AUC = 0.88, G-Means = 0.68, AIC = 116.78, BIC = 158.11
+        \item m.bo-Lasso với $p^*= 0.7836$, AUC = 0.90, G-Means = 0.68, AIC = 137.29, BIC = 178.61
+        \item pca\_95-Lasso với $p^*= 0.4995$, AUC = 0.89, G-Means = 0.74, AIC = 174.44, BIC = 247.36
+        \item Sklearn-m.bo-Lasso với $p^*= 0.4100$, AUC = 0.84, G-Means = 0.62, AIC = 132.45, BIC = 173.77
+        \item Sklearn-m.bo-Ridge với $p^*= 0.4300$, AUC = 0.84, G-Means = 062, AIC = 132.99, BIC = 174.32
+    \end{itemize}
 
     \begin{figure}[h!]
         \centering
         \includegraphics[width=1.0\textwidth]{figures/prob_box_plot.png}
         \caption{So sánh kết quả đầu ra của một số mô hình dùng box plot}
-        \label{fig:prob_box_plot}
+        \label{fig:prob-box-plot}
     \end{figure}
 
-    Ở bài tập 2, mỗi mô hình trên được tối ưu hóa siêu tham số theo hai cách:
+    Hình \ref{fig:prob-box-plot} vẽ box plot so sánh các kết quả đầu ra với từng mô hình.
+    Ta nhận thấy mô hình pca\_95-Lasso dù có các chỉ số về AUC-ROC và G-Means rất tốt nhưng phân phối kết quả đầu ra của các ví dụ nhãn "M" và "R" rất sát nhau.
+    Mặt khác ta thấy mô hình m.bo-Ridge và m.bo-Lasso có phân phối kết quả đầu ra tách biệt nhau khá lớn giữa hai lớp "M" và "R", ta thấy hai mô hình này về mặt trực quan có khả năng phân loại tốt nhất trong các mô hình trên.
+
+    Ta kiểm tra các trọng số thu được của mô hình pca\_95-Lasso:
+
+    \begin{verbatim}
+[ 0.          0.00581896 -0.0134918   0.          0.          0.
+0.          0.          0.          0.          0.          0.
+0.          0.          0.          0.          0.          0.
+0.          0.          0.          0.          0.          0.
+0.          0.          0.          0.          0.          0.]
+    \end{verbatim}
+
+    Ta thấy các trọng số học được của mô hình pca\_95-Lasso rất thưa chỉ có 2 trọng số khác không nhưng cũng rất nhỏ.
+    Điều này làm cho khác biệt về kết quả đầu ra giữa các nhãn nhỏ không đủ khoảng cách an toàn với những dữ liệu mới chưa gặp.
+
+    Ta sẽ xét thêm ma trận nhầm lẫn (confusion matrix) của các mô hình trên tại ngưỡng xác suất $p^*$ đã được tính:
+
+    \begin{verbatim}
+m.bo-Ridge:    precision    recall  f1-score   support
+
+        0       0.85      0.89      0.87        45
+        1       0.86      0.82      0.84        39
+
+ accuracy                           0.86        84
+macro avg       0.86      0.85      0.86        84
+weighted avg    0.86      0.86      0.86        84
+
+m.bo-Naive:    precision    recall  f1-score   support
+
+        0       0.79      0.91      0.85        45
+        1       0.88      0.72      0.79        39
+
+ accuracy                           0.82        84
+macro avg       0.83      0.81      0.82        84
+weighted avg    0.83      0.82      0.82        84
+
+m.bo-Lasso:   precision    recall  f1-score   support
+
+        0       0.79      0.91      0.85        45
+        1       0.88      0.72      0.79        39
+
+ accuracy                           0.82        84
+macro avg       0.83      0.81      0.82        84
+weighted avg    0.83      0.82      0.82        84
+
+pca_95-Lasso:  precision  recall  f1-score   support
+
+        0       0.88      0.82      0.85        45
+        1       0.81      0.87      0.84        39
+
+ accuracy                           0.85        84
+macro avg       0.85      0.85      0.85        84
+weighted avg    0.85      0.85      0.85        84
+
+Sklearn-m.bo-Lasso:  precision    recall  f1-score   support
+
+        0       0.78      0.80      0.79        45
+        1       0.76      0.74      0.75        39
+
+ accuracy                           0.77        84
+macro avg       0.77      0.77      0.77        84
+weighted avg    0.77      0.77      0.77        84
+
+Sklearn-m.bo-Ridge: precision    recall  f1-score   support
+
+        0       0.78      0.80      0.79        45
+        1       0.76      0.74      0.75        39
+
+ accuracy                           0.77        84
+macro avg       0.77      0.77      0.77        84
+weighted avg    0.77      0.77      0.77        84
+
+    \end{verbatim}
+
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=1.0\textwidth]{figures/little_roc_curve_summary.png}
+        \caption{Tổng hợp kết quả các mô hình có kết quả tốt nhất. Dấu chấm đỏ thể hiện điểm ($\mathrm{FPR}^*, \mathrm{TPR}^*$) tương ứng với ngưỡng $p^*$ làm cực đại G-Means}
+        \label{fig:little-roc-curve-summary}
+    \end{figure}
+
+    Từ hình \ref{fig:little-roc-curve-summary} và các ma trận nhầm lẫn của các mô hình tại ngưỡng xác suất $p^*$ đã được tính thì hai mô hình m.bo-Ridge và mô hình pca\_95-Lasso có kết quả tốt nhất (Precision, Recall, F1-score cao nhất) nhưng như ở trên ta đã thấy không có sự tách biệt lớn về phân phối đầu ra giữa các nhãn của mô hình pca\_95-Lasso nên quyết định cuối cùng ta chọn mô hình m.bo-Ridge
+
+    Ở bài tập 2 (tuần thứ 3), mỗi mô hình trên được tối ưu hóa siêu tham số theo hai cách:
 
     \begin{itemize}
         \item Chỉ tối ưu trên random\_state của mô hình logistic (cách khởi tạo mô hình).
@@ -888,16 +1015,27 @@ gmean_star = gmeans[idx]
         \centering
         \includegraphics[width=1.0\textwidth]{figures/ROC_Curve_AIC_BIC_Excercise_2_1.png}
         \caption{ So sánh đường cong ROC, $p^*$, G-Means tương ứng với $p^*$, chỉ số AIC, BIC của các mô hình được tối ưu hóa tham số ở bài tập 2 theo cách 1}
-        \label{fig:ROC_Curve_AIC_BIC_Excercise_2_1}
+        \label{fig:ROC-Curve-AIC-BIC_Excercise-2-1}
     \end{figure}
 
     \begin{figure}[h!]
         \centering
         \includegraphics[width=1.0\textwidth]{figures/ROC_Curve_AIC_BIC_Excercise_2_2.png}
         \caption{ So sánh đường cong ROC, $p^*$, G-Means tương ứng với $p^*$, chỉ số AIC, BIC của các mô hình được tối ưu hóa tham số ở bài tập 2 theo cách 2}
-        \label{fig:ROC_Curve_AIC_BIC_Excercise_2_2}
+        \label{fig:ROC-Curve-AIC-BIC_Excercise-2-2}
     \end{figure}
+
+    Ở bài tập số 2 (tuần số 3), với mỗi mô hình ta đã chạy tối ưu hóa tham số trong đó các phương pháp hiệu chỉnh như Ridge, Lasso, Elasticnet đã được sử dụng.
+    Ta nhận thấy kết quả các mô hình ở bài tập trước cho kết quả cao hơn thế nhưng trong các mô hình ở bài tập trước việc chia tập train và test khác nhau có thể dẫn đến những tập test có các ví dụ điển hình của các lớp làm cho các thông số như AUC-ROC, G-Means cực đại cao lên.
+    Còn ở bài tập số 3, ta cố định trước tập train và tập test cho mọi mô hình và kiểm tra mô hình trên tập test cố định này.
 \end{loigiai}
+
+\newpage
+\begin{center}
+    \section*{KẾT LUẬN}
+    Ta chọn mô hình m.bo-Ridge với ngưỡng $p^*=0.5335$, AUC = 0.89, G-Means = 0.75, AIC = 120.36, BIC = 161.68.
+    Do những hạn chế về thời gian nên bài tập chưa thể chạy tối ưu thêm một số các siêu tham số ở các mô hình tự cài đặt bằng python và numpy như hệ số $\lambda$ (hệ số $\lambda$ được tối ưu hóa trong huấn luyện các mô hình bằng sklearn nhưng trong các mô hình tự cài đặt $\lambda$ được đặt cố định bằng 1e-3).
+\end{center}
 
 \newpage
 \printbibliography[title={TÀI LIỆU THAM KHẢO}]
