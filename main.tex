@@ -1026,17 +1026,18 @@ weighted avg    0.77      0.77      0.77        84
     \end{figure}
 
     Ở bài tập số 2 (tuần số 3), với mỗi mô hình ta đã chạy tối ưu hóa tham số trong đó các phương pháp hiệu chỉnh như Ridge, Lasso, Elasticnet đã được sử dụng.
+    Hình \ref{fig:ROC-Curve-AIC-BIC_Excercise-2-1} và \ref{fig:ROC-Curve-AIC-BIC_Excercise-2-2} tổng hợp đường cong ROC, $p^*$, G-Means tương ứng với $p^*$, chỉ số AIC, BIC của các mô hình được tối ưu hóa tham số ở bài tập 2.
     Ta nhận thấy kết quả các mô hình ở bài tập trước cho kết quả cao hơn thế nhưng trong các mô hình ở bài tập trước việc chia tập train và test khác nhau có thể dẫn đến những tập test có các ví dụ điển hình của các lớp làm cho các thông số như AUC-ROC, G-Means cực đại cao lên.
     Còn ở bài tập số 3, ta cố định trước tập train và tập test cho mọi mô hình và kiểm tra mô hình trên tập test cố định này.
 \end{loigiai}
 
 \newpage
-\begin{center}
-    \section*{KẾT LUẬN}
-    Ta chọn mô hình m.bo-Ridge với ngưỡng $p^*=0.5335$, AUC = 0.89, G-Means = 0.75, AIC = 120.36, BIC = 161.68.
-    Do những hạn chế về thời gian nên bài tập chưa thể chạy tối ưu thêm một số các siêu tham số ở các mô hình tự cài đặt bằng python và numpy như hệ số $\lambda$ (hệ số $\lambda$ được tối ưu hóa trong huấn luyện các mô hình bằng sklearn nhưng trong các mô hình tự cài đặt $\lambda$ được đặt cố định bằng 1e-3).
-\end{center}
-
+    \section*{Kết luận}
+    Ta chọn mô hình forward-backward m.bo-Ridge với ngưỡng $p^*=0.5335$, AUC = 0.89, G-Means = 0.75, AIC = 120.36, BIC = 161.68.
+    Do những hạn chế về thời gian nên bài tập chưa thể chạy tối ưu thêm một số các siêu tham số ở các mô hình tự cài đặt bằng python và numpy như hệ số $\lambda$ (hệ số $\lambda$ được tối ưu hóa trong huấn luyện các mô hình bằng sklearn nhưng trong các mô hình tự cài đặt $\lambda$ được đặt bằng 1e-3).
+    Mô hình forward-backward cho kết quả tốt nhất dù theo Naive, Lasso hay Ridge lý do là vì đã được trích chọn đặc trưng từ quá trình chọn các đặc trưng sao cho cực đại hóa ước lượng hợp lý trên dữ liệu.
+    Ngoài ra phương pháp phân tích thành phần chính PCA cũng cho kết quả khá tốt do PCA đã trích xuất ra các đặc trưng độc lập dẫn đến làm giảm sự đa cộng tuyến trong mô hình.
+    Các mô hình sử dụng phương pháp hiệu chỉnh Lasso thường cho các trọng số khá thưa (nhiều trọng số là 0), một số mô hình cho kết quả phân loại trên tập test khá tốt nhưng do nhiều trọng số bằng 0 cũng như các trọng số khác 0 vẫn có trị tuyệt đối nhỏ làm cho các mô hình này không có ranh giới lớn về phân phối đầu ra giữa các nhãn.
 \newpage
 \printbibliography[title={TÀI LIỆU THAM KHẢO}]
 
